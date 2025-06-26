@@ -5,6 +5,7 @@ import secrets
 from app.services.email import enviar_email_boas_vindas, send_recovery_email
 from datetime import datetime
 from sqlalchemy import func
+import json
 
 auth_views = Blueprint('auth_views', __name__)
 
