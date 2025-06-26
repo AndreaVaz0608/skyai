@@ -7,7 +7,7 @@ from datetime import datetime
 from sqlalchemy import func
 import json
 
-auth_views = Blueprint('auth_views', __name__, url_prefix="")
+auth_views = Blueprint('auth_views', __name__)
 
 # 🔹 Redirecionamento da raiz para login
 @auth_views.route('/')
