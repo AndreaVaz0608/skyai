@@ -433,5 +433,9 @@ You are Guru SkyAI. Respond to the following question using astrology and numero
 
 @user_bp.route("/")
 def home():
-    return "🚀 SkyAI está no ar! Acesse /preencher-dados para começar seu mapa astral."
+    if 'user_id' in session:
+        return redirect(url_for('user.preencher_dados'))
+    else:
+        return redirect(url_for('auth_views.login_view'))
+
 
