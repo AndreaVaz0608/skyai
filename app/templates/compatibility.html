@@ -1,0 +1,107 @@
+{% extends "base.html" %}
+{% block title %}Compatibility Reading • SkyAI{% endblock %}
+
+{% block content %}
+<style>
+  input[type="text"],
+  input[type="date"],
+  input[type="time"] {
+    background-color: #e6efff;
+    border: none;
+    border-radius: 8px;
+    width: 100%;
+    padding: 0.7rem;
+    font-size: 1rem;
+    box-sizing: border-box;
+    appearance: none;
+    -webkit-appearance: none;
+    -moz-appearance: none;
+  }
+
+  fieldset {
+    border: 1px solid #444;
+    border-radius: 8px;
+    padding: 1.5rem;
+  }
+</style>
+
+<div class="box-container" style="max-width: 640px; margin: 0 auto; padding: 2rem;">
+  <div style="text-align: center; margin-bottom: 2.5rem;">
+    <img src="{{ url_for('static', filename='img/logo_skyai.png') }}" alt="SkyAI Logo" style="max-height: 60px;">
+    <h2 style="margin-top: 1rem; color: #ffdd77;">💘 Cosmic Compatibility</h2>
+    <p style="color: #ccc;">Enter the birth and identity details for both people to receive a complete compatibility reading.</p>
+  </div>
+
+  <form method="POST" action="{{ url_for('user.compatibility') }}">
+    <!-- Person 1 -->
+    <fieldset style="margin-bottom: 2.5rem;">
+      <legend style="color: #ffdd77; margin-bottom: 1rem;">✨ Person 1</legend>
+
+      <div class="form-group" style="margin-bottom: 1rem;">
+        <label for="name_1" style="color: #fff;">Full Name</label>
+        <input type="text" name="name_1" id="name_1" required placeholder="e.g. John Smith">
+      </div>
+
+      <div class="form-group" style="margin-bottom: 1rem;">
+        <label for="birth_1" style="color: #fff;">Date of Birth</label>
+        <input type="date" name="birth_1" id="birth_1" required>
+      </div>
+
+      <div class="form-group" style="margin-bottom: 1rem;">
+        <label for="birth_time_1" style="color: #fff;">Time of Birth</label>
+        <input type="time" name="birth_time_1" id="birth_time_1" required>
+      </div>
+
+      <div class="form-group" style="margin-bottom: 1rem;">
+        <label for="birth_city_1" style="color: #fff;">City of Birth</label>
+        <input type="text" name="birth_city_1" id="birth_city_1" required placeholder="e.g. São Paulo">
+      </div>
+
+      <div class="form-group">
+        <label for="birth_country_1" style="color: #fff;">Country of Birth</label>
+        <input type="text" name="birth_country_1" id="birth_country_1" required placeholder="e.g. Brazil">
+      </div>
+    </fieldset>
+
+    <!-- Person 2 -->
+    <fieldset style="margin-bottom: 2.5rem;">
+      <legend style="color: #ffdd77; margin-bottom: 1rem;">✨ Person 2</legend>
+
+      <div class="form-group" style="margin-bottom: 1rem;">
+        <label for="name_2" style="color: #fff;">Full Name</label>
+        <input type="text" name="name_2" id="name_2" required placeholder="e.g. Jane Doe">
+      </div>
+
+      <div class="form-group" style="margin-bottom: 1rem;">
+        <label for="birth_2" style="color: #fff;">Date of Birth</label>
+        <input type="date" name="birth_2" id="birth_2" required>
+      </div>
+
+      <div class="form-group" style="margin-bottom: 1rem;">
+        <label for="birth_time_2" style="color: #fff;">Time of Birth</label>
+        <input type="time" name="birth_time_2" id="birth_time_2" required>
+      </div>
+
+      <div class="form-group" style="margin-bottom: 1rem;">
+        <label for="birth_city_2" style="color: #fff;">City of Birth</label>
+        <input type="text" name="birth_city_2" id="birth_city_2" required placeholder="e.g. Lisbon">
+      </div>
+
+      <div class="form-group">
+        <label for="birth_country_2" style="color: #fff;">Country of Birth</label>
+        <input type="text" name="birth_country_2" id="birth_country_2" required placeholder="e.g. Portugal">
+      </div>
+    </fieldset>
+
+    <button type="submit" class="btn-primary" style="width: 100%; padding: 1rem; border-radius: 12px; font-size: 1.1rem;">
+      🔍 Analyze Compatibility
+    </button>
+  </form>
+
+  <div style="text-align: center; margin-top: 2rem;">
+    <a href="{{ url_for('auth_views.dashboard') }}" class="btn-primary" style="background-color: transparent; border: 2px solid #ffdd77; color: #ffdd77; padding: 0.75rem 1.5rem; border-radius: 10px;">
+      ← Back to Dashboard
+    </a>
+  </div>
+</div>
+{% endblock %}

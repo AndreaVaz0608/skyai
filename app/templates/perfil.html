@@ -1,0 +1,34 @@
+{% extends "base.html" %}
+{% block title %}Edit Profile • Sky.AI{% endblock %}
+
+{% block content %}
+<div class="box-container" style="max-width: 600px;">
+  <div class="box-header">
+    <img src="{{ url_for('static', filename='img/logo_skyai.png') }}" alt="Logo">
+    <h2>Edit Profile</h2>
+  </div>
+
+  <form method="POST">
+    <div>
+      <label for="name">Full Name</label>
+      <input type="text" id="name" name="name" value="{{ user.name }}" required />
+    </div>
+
+    <div>
+      <label for="email">Email Address</label>
+      <input type="email" id="email" name="email" value="{{ user.email }}" required />
+    </div>
+
+    <div>
+      <label for="password">New Password <small>(optional)</small></label>
+      <input type="password" id="password" name="password" placeholder="Leave blank to keep current" />
+    </div>
+
+    <button type="submit">Save Changes</button>
+  </form>
+
+  <div class="footer-links">
+    <a href="{{ url_for('auth_views.dashboard') }}">← Back to Dashboard</a>
+  </div>
+</div>
+{% endblock %}

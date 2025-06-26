@@ -1,0 +1,38 @@
+{% extends "base.html" %}
+{% block title %}Login • Sky.AI{% endblock %}
+
+{% block content %}
+<div class="box-container">
+  <div class="box-header">
+    <img src="{{ url_for('static', filename='img/logo_skyai.png') }}" alt="Logo">
+    <h2>Sky.AI</h2>
+  </div>
+
+  <form method="POST">
+    <input type="email" name="email" placeholder="Your email" required />
+
+    <div class="password-wrapper">
+      <input type="password" id="password" name="password" placeholder="Your Password" required />
+      <button type="button" class="toggle-password" onclick="togglePassword()" aria-label="Show Password">
+        👁️
+      </button>
+    </div>
+
+    <button type="submit">Login</button>
+  </form>
+
+  <div class="footer-links">
+    <a href="{{ url_for('auth_views.register_view') }}">Sign up</a> |
+    <a href="{{ url_for('auth_views.forgot_password') }}">Forgot Password</a>
+  </div>
+</div>
+{% endblock %}
+
+{% block scripts %}
+<script>
+  function togglePassword() {
+    const pwd = document.getElementById("password");
+    pwd.type = pwd.type === "password" ? "text" : "password";
+  }
+</script>
+{% endblock %}

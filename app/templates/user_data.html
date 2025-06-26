@@ -1,0 +1,86 @@
+{% extends "base.html" %}
+{% block title %}Complete Your Cosmic Profile • SkyAI{% endblock %}
+
+{% block content %}
+<style>
+  /* Harmonizar campos date e time com os demais inputs */
+  input[type="date"],
+  input[type="time"] {
+    background-color: #e6f0ff;
+    color: #333;
+    border: 1px solid #ccc;
+    border-radius: 10px;
+    padding: 0.9rem;
+    font-size: 1rem;
+    width: 100%;
+    box-sizing: border-box;
+  }
+
+  input[type="date"]:focus,
+  input[type="time"]:focus {
+    outline: none;
+    border-color: #FCE495;
+    box-shadow: 0 0 0 3px rgba(252, 228, 149, 0.2);
+  }
+
+  label {
+    display: block;
+    font-weight: 500;
+    font-size: 1rem;
+    margin-bottom: 0.4rem;
+    color: #ccc;
+  }
+
+  .form-group {
+    margin-bottom: 1.5rem;
+  }
+</style>
+
+<div class="box-container" style="max-width: 520px; margin: 0 auto;">
+  <div class="box-header" style="text-align: center;">
+    <img src="{{ url_for('static', filename='img/logo_skyai.png') }}" alt="SkyAI Logo" style="max-width: 150px; height: auto; margin-bottom: 1rem;" />
+    <h2>Complete Your Cosmic Profile</h2>
+  </div>
+
+  {% with messages = get_flashed_messages(with_categories=true) %}
+    {% if messages %}
+      {% for category, message in messages %}
+        <div class="flash {{ category }}">{{ message|e }}</div>
+      {% endfor %}
+    {% endif %}
+  {% endwith %}
+
+  <form method="POST">
+    <div class="form-group">
+      <label for="full_name">Full Name</label>
+      <input type="text" id="full_name" name="full_name" required />
+    </div>
+
+    <div class="form-group">
+      <label for="birth_date">Date of Birth</label>
+      <input type="date" id="birth_date" name="birth_date" required />
+    </div>
+
+    <div class="form-group">
+      <label for="birth_time">Time of Birth</label>
+      <input type="time" id="birth_time" name="birth_time" required />
+    </div>
+
+    <div class="form-group">
+      <label for="birth_city">City of Birth</label>
+      <input type="text" id="birth_city" name="birth_city" required />
+    </div>
+
+    <div class="form-group">
+      <label for="birth_country">Country of Birth</label>
+      <input type="text" id="birth_country" name="birth_country" required />
+    </div>
+
+    <button type="submit">Save and Continue</button>
+  </form>
+
+  <div class="footer-links" style="margin-top: 2rem; text-align: center;">
+    <a href="{{ url_for('auth_views.logout') }}">← Logout</a>
+  </div>
+</div>
+{% endblock %}

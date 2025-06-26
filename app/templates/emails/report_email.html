@@ -1,0 +1,97 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <title>Your AI Report is Ready – SKY.AI</title>
+  <style>
+    body {
+      font-family: 'Segoe UI', sans-serif;
+      background-color: #f5f8fa;
+      padding: 40px 20px;
+      color: #0b1f36;
+    }
+
+    .email-wrapper {
+      max-width: 620px;
+      margin: auto;
+      background: #ffffff;
+      padding: 32px;
+      border-radius: 12px;
+      box-shadow: 0 8px 30px rgba(0, 0, 0, 0.06);
+    }
+
+    h1 {
+      color: #0b1f36;
+      font-size: 24px;
+      text-align: center;
+    }
+
+    p {
+      font-size: 16px;
+      line-height: 1.6;
+      color: #333;
+    }
+
+    .profile {
+      margin: 24px 0;
+      font-size: 16px;
+      padding: 16px;
+      background: #f2f6fc;
+      border-left: 4px solid #d4af37;
+      border-radius: 8px;
+    }
+
+    .cta-button {
+      display: inline-block;
+      margin-top: 24px;
+      padding: 12px 20px;
+      background-color: #d4af37;
+      color: #0b1f36;
+      text-decoration: none;
+      border-radius: 8px;
+      font-weight: 600;
+      text-align: center;
+    }
+
+    .footer {
+      font-size: 13px;
+      margin-top: 32px;
+      color: #999;
+      text-align: center;
+    }
+  </style>
+</head>
+<body>
+  <div class="email-wrapper">
+    <h1>Hello, {{ nome }}! 🌟</h1>
+
+    <p>We've just decoded your unique behavioral profile using the power of AI combined with MBTI, DISC, and Enneagram frameworks.</p>
+
+    <p>This is more than a report — it's your self-awareness compass.</p>
+
+    <div class="profile">
+      <p><strong>MBTI:</strong> {{ mbti }}</p>
+      <p><strong>DISC:</strong> {{ disc }}</p>
+      <p><strong>Enneagram:</strong> {{ eneagrama }}</p>
+    </div>
+
+    <p>🧭 This powerful combination reveals your strengths, growth areas, decision style, and deeper motivations.</p>
+
+    <p>Tap below to explore your full interactive report:</p>
+
+    <div style="text-align: center;">
+      <a href="{{ link }}" class="cta-button">View Your Report Now</a>
+    </div>
+
+    <hr style="margin: 32px 0; border: none; border-top: 1px solid #eee;">
+
+    <p>🚀 Want deeper insights and monthly personalized tips? Upgrade to <strong>PRO</strong> for exclusive growth tools and premium features designed just for you.</p>
+
+    <div style="text-align: center;">
+      <a href="https://youdecoded-ai.onrender.com/products" class="cta-button" style="background-color: #0b1f36; color: #fff;">Upgrade to PRO</a>
+    </div>
+
+    <p class="footer">With love,<br>The SKY.AI Team</p>
+  </div>
+</body>
+</html>

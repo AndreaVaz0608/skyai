@@ -1,0 +1,254 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <title>{% block title %}SkyAI{% endblock %}</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@300;400;600&display=swap" rel="stylesheet">
+
+  <style>
+    :root {
+      --main-bg: #eff2f4;
+      --container-bg: #010b17;
+      --primary-color: #FCE495;
+      --text-color: #ffffff;
+      --text-dark: #333;
+      --input-bg: #e6f0ff;
+    }
+
+    html, body {
+      overflow-x: hidden;
+    }
+
+    body {
+      font-family: 'Poppins', sans-serif;
+      background-color: var(--main-bg);
+      color: var(--text-color);
+      margin: 0;
+      padding: 2rem 1.5rem;
+      font-size: clamp(15px, 2.5vw, 16px);
+      line-height: 1.6;
+    }
+
+    h1, h2, h3 {
+      color: var(--primary-color);
+      line-height: 1.3;
+      margin-bottom: 1.25rem;
+      word-wrap: break-word;
+    }
+
+    h1 {
+      font-size: clamp(1.6rem, 4vw, 2rem);
+    }
+
+    h2 {
+      font-size: clamp(1.3rem, 3vw, 1.5rem);
+    }
+
+    h3 {
+      font-size: clamp(1.1rem, 2.5vw, 1.25rem);
+    }
+
+    .flash {
+      margin: 1rem 0;
+      padding: 0.85rem 1.2rem;
+      border-radius: 12px;
+      font-weight: 500;
+      text-align: center;
+      border: 1px solid transparent;
+    }
+
+    .flash.success {
+      background-color: #e6f9ed;
+      color: #155724;
+      border-color: #b3e6cc;
+    }
+
+    .flash.error {
+      background-color: #fdecea;
+      color: #a30000;
+      border-color: #f5c6cb;
+    }
+
+    .flash.warning {
+      background-color: #fff3cd;
+      color: #856404;
+      border-color: #ffeeba;
+    }
+
+    .contact-floating {
+      position: fixed;
+      bottom: 24px;
+      right: 24px;
+      background-color: var(--primary-color);
+      color: #0C0804;
+      border-radius: 50%;
+      width: 54px;
+      height: 54px;
+      display: flex;
+      justify-content: center;
+      align-items: center;
+      font-size: 1.4rem;
+      font-weight: bold;
+      text-decoration: none;
+      box-shadow: 0 4px 12px rgba(0, 0, 0, 0.25);
+      transition: background-color 0.3s ease;
+      z-index: 1000;
+    }
+
+    .contact-floating:hover {
+      background-color: #e6d57f;
+    }
+
+    @media (max-width: 600px) {
+      .contact-floating {
+        width: 48px;
+        height: 48px;
+        font-size: 1.2rem;
+        bottom: 16px;
+        right: 16px;
+      }
+    }
+
+    /* ========= Design Unificado Sky.AI ========= */
+
+    .box-container {
+      background: var(--container-bg);
+      padding: 2.5rem;
+      border-radius: 20px;
+      width: 100%;
+      max-width: 600px;
+      margin: 2.5rem auto;
+      color: white;
+      box-sizing: border-box;
+    }
+
+    .box-header {
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      gap: 0.75rem;
+      margin-bottom: 2rem;
+    }
+
+    .box-header img {
+      height: 80px;
+      width: auto;
+    }
+
+    .box-header h2 {
+      font-weight: 600;
+      font-size: 1.8rem;
+      color: var(--primary-color);
+      margin: 0;
+    }
+
+    form {
+      display: flex;
+      flex-direction: column;
+      gap: 1.2rem;
+    }
+
+    input[type="email"],
+    input[type="password"],
+    input[type="text"] {
+      padding: 0.85rem;
+      padding-right: 2.5rem;
+      border: 1px solid #ccc;
+      border-radius: 10px;
+      font-size: 1rem;
+      background-color: var(--input-bg);
+      color: var(--text-dark);
+      width: 100%;
+      box-sizing: border-box;
+    }
+
+    input:focus {
+      outline: none;
+      border-color: var(--primary-color);
+      box-shadow: 0 0 0 3px rgba(252, 228, 149, 0.2);
+    }
+
+    .password-wrapper {
+      position: relative;
+      width: 100%;
+    }
+
+    .toggle-password {
+      position: absolute;
+      right: 12px;
+      top: 50%;
+      transform: translateY(-50%);
+      font-size: 1.1rem;
+      color: #555;
+      background: transparent;
+      border: none;
+      padding: 0;
+      margin: 0;
+      height: 1.5rem;
+      width: 1.5rem;
+      cursor: pointer;
+      z-index: 5;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+    }
+
+    button[type="submit"],
+    .btn-primary {
+      background-color: var(--primary-color);
+      color: #0C0804;
+      border: none;
+      padding: 0.85rem;
+      border-radius: 10px;
+      font-weight: 600;
+      font-size: 1rem;
+      cursor: pointer;
+      transition: background-color 0.3s ease;
+      width: 100%;
+    }
+
+    button[type="submit"]:hover,
+    .btn-primary:hover {
+      background-color: #e6d17a;
+    }
+
+    .footer-links {
+      text-align: center;
+      margin-top: 1.5rem;
+      font-size: 0.9rem;
+      color: #ccc;
+    }
+
+    .footer-links a {
+      color: var(--primary-color);
+      text-decoration: none;
+      font-weight: 500;
+    }
+
+    .footer-links a:hover {
+      text-decoration: underline;
+    }
+  </style>
+
+  {% block styles %}{% endblock %}
+</head>
+<body class="{% block body_class %}{% endblock %}">
+
+  {% with messages = get_flashed_messages(with_categories=true) %}
+    {% if messages %}
+      {% for category, message in messages %}
+        <div class="flash {{ category }}">{{ message }}</div>
+      {% endfor %}
+    {% endif %}
+  {% endwith %}
+
+  {% block content %}{% endblock %}
+
+  <a href="{{ url_for('contato.contato') }}" class="contact-floating" title="Contact us">
+    💬
+  </a>
+
+  {% block scripts %}{% endblock %}
+</body>
+</html>

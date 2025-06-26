@@ -1,0 +1,62 @@
+{% extends "base.html" %}
+{% block title %}Privacy Policy • SkyAI{% endblock %}
+
+{% block content %}
+<div class="box-container" style="max-width: 900px;">
+  <div class="box-header">
+    <img src="{{ url_for('static', filename='img/logo_skyai.png') }}" alt="Logo">
+    <h2>Privacy Policy – SkyAI</h2>
+  </div>
+
+  <p>This Privacy Policy outlines how SkyAI (“we”, “our”, or “us”) collects, uses, protects, and shares personal information of users (“you”) who access or use the SkyAI platform.</p>
+
+  <h3>1. What Data We Collect</h3>
+  <p>We may collect the following types of personal information:</p>
+  <ul>
+    <li>Full name and email address</li>
+    <li>Date, time and location of birth</li>
+    <li>User account information and preferences</li>
+    <li>Responses to astrological and numerological inputs</li>
+    <li>Technical data such as device type, IP address, browser, etc.</li>
+  </ul>
+
+  <h3>2. How We Use Your Information</h3>
+  <p>We use your information to:</p>
+  <ul>
+    <li>Generate personalized astrological and numerological reports</li>
+    <li>Improve your experience and suggest relevant insights</li>
+    <li>Communicate with you (e.g., welcome messages, support)</li>
+    <li>Process payments securely (when applicable)</li>
+    <li>Ensure platform security and performance</li>
+  </ul>
+
+  <h3>3. Data Sharing</h3>
+  <p>We do not sell your personal information. We may share your data with third parties strictly necessary for:</p>
+  <ul>
+    <li>Providing AI-generated insights (e.g., OpenAI)</li>
+    <li>Processing secure payments (e.g., Stripe)</li>
+    <li>Hosting and infrastructure services (e.g., Render, Firebase)</li>
+    <li>Legal or regulatory compliance, when required</li>
+  </ul>
+
+  <h3>4. Data Storage & Security</h3>
+  <p>Your data is stored on secure servers and protected using modern encryption and access control practices. Despite our efforts, no method of transmission over the internet is 100% secure.</p>
+
+  <h3>5. User Rights</h3>
+  <p>You may request to access, correct, or delete your personal data at any time by contacting us. You also have the right to withdraw consent and disable account usage.</p>
+
+  <h3>6. Cookies</h3>
+  <p>SkyAI uses cookies and similar technologies to enhance your experience. You can configure your browser settings to block cookies, but this may impact platform functionality.</p>
+
+  <h3>7. International Users</h3>
+  <p>By using SkyAI outside Brazil, you agree that your data may be processed and stored in jurisdictions that may not offer the same level of protection as your country.</p>
+
+  <h3>8. Changes to This Policy</h3>
+  <p>We may update this policy from time to time. Material changes will be communicated through our website or email. Continued use of the platform constitutes acceptance of changes.</p>
+
+  <h3>9. Contact</h3>
+  <p>If you have questions or requests about this Privacy Policy, contact us at: 
+    <a href="mailto:skyai@skyai.digital">skyai@skyai.digital</a>
+  </p>
+</div>
+{% endblock %}

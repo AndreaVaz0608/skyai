@@ -1,0 +1,30 @@
+﻿# === VENV (ambiente virtual) ===
+venv/
+.venv/
+
+# === Python cache ===
+__pycache__/
+*.py[cod]
+*.class
+
+# === Arquivos de ambiente (.env contém senhas!) ===
+.env
+
+# === Traduções compiladas (.mo são gerados) ===
+*.mo
+
+# === Log e temporários ===
+*.log
+*.tmp
+*.bak
+*.swp
+
+# === IDEs e configurações de editor ===
+.vscode/
+.idea/
+*.sublime-project
+*.sublime-workspace
+
+# === Arquivos do sistema operacional ===
+.DS_Store
+Thumbs.db
