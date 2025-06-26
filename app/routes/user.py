@@ -430,3 +430,8 @@ You are Guru SkyAI. Respond to the following question using astrology and numero
         flash("Sorry, Guru SkyAI couldn't answer your question right now.", "danger")
 
     return redirect(url_for('auth_views.dashboard'))
+
+@user_bp.route("/")
+def home():
+    return "🚀 SkyAI está no ar! Acesse /preencher-dados para começar seu mapa astral."
+
