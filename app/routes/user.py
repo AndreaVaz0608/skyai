@@ -436,5 +436,4 @@ def home():
     if 'user_id' in session:
         return redirect(url_for('user.preencher_dados'))
     else:
-        return redirect(url_for('auth_views.login_view'))
-    
+        return redirect('/login')  # <- substitui o url_for aqui
