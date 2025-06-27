@@ -1,17 +1,20 @@
-from flask import Blueprint, render_template, request, redirect, url_for, flash, session, make_response, current_app
-from app.main import db
-from app.models import User, TestSession
-from app.services.perfil_service import generate_report_via_ai as generate_skyai_report_via_ai
-import pdfkit
+from flask import (
+    Blueprint, render_template, request, redirect, url_for,
+    flash, session, current_app, make_response          # ← make_response aqui
+)
 from datetime import datetime
-import threading
-import time
-import os
-from datetime import datetime, timedelta
-from sqlalchemy import func
-from app.models import GuruQuestion  # (você vai precisar criar esse model)
 import json
+import os
+import threading
+import pdfkit                                            # ← pdfkit aqui
+from sqlalchemy import func
 from openai import OpenAI
+
+from app.main import db
+from app.models import User, TestSession, GuruQuestion
+from app.services.perfil_service import (
+    generate_report_via_ai as generate_skyai_report_via_ai
+)
 
 user_bp = Blueprint('user', __name__, template_folder='../templates')
 
@@ -92,12 +95,7 @@ def gerar_relatorio_background(app, sessao_id):
         try:
             sessao = TestSession.query.get(sessao_id)
             if not sessao:
-                current_app.logger.error(f"[BACKGROUND ERROR] Sessão {sessao_id} não encontrada.")
-                return
-
-            user = User.query.get(sessao.user_id)
-            if not user:
-                current_app.logger.error(f"[BACKGROUND ERROR] Usuário {sessao.user_id} da sessão {sessao_id} não encontrado.")
+                current_app.logger.error(f"[BACKGROUND] Sessão {sessao_id} não encontrada.")
                 return
 
             dados = {
@@ -108,34 +106,34 @@ def gerar_relatorio_background(app, sessao_id):
                 "birth_country": sessao.birth_country,
             }
 
-            current_app.logger.info(f"[BACKGROUND] Iniciando geração do relatório para sessão {sessao_id}")
-
+            current_app.logger.info(f"[BACKGROUND] Gerando relatório para sessão {sessao_id}")
             resultado = generate_skyai_report_via_ai(dados)
 
+            # Se a IA indicou erro ➜ aborta
             if resultado.get("erro"):
-                current_app.logger.error(f"[AI ❌] Erro ao gerar relatório: {resultado['erro']}")
+                current_app.logger.error(f"[AI ❌] {resultado['erro']}")
                 return
 
-            if resultado.get("texto") and resultado.get("sun_sign"):
-                current_app.logger.info(f"[AI DEBUG] Resultado:\n{json.dumps(resultado, indent=2, ensure_ascii=False)}")
-
-                sessao.ai_result = json.dumps(resultado, ensure_ascii=False)
-                sessao.sun_sign = resultado.get("sun_sign")
-                sessao.moon_sign = resultado.get("moon_sign")
-                sessao.ascendant = resultado.get("ascendant")
-                sessao.life_path = resultado.get("life_path")
-                sessao.soul_urge = resultado.get("soul_urge")
-                sessao.expression = resultado.get("expression")
-
+            # Grava somente se o JSON está completo (sun_sign presente)
+            if resultado.get("sun_sign"):
+                sessao.ai_result  = json.dumps(resultado, ensure_ascii=False)
+                sessao.sun_sign   = resultado["sun_sign"]
+                sessao.moon_sign  = resultado["moon_sign"]
+                sessao.ascendant  = resultado["ascendant"]
+                sessao.life_path  = resultado["life_path"]
+                sessao.soul_urge  = resultado["soul_urge"]
+                sessao.expression = resultado["expression"]
                 db.session.commit()
-                current_app.logger.info(f"[AI ✅] Relatório salvo com sucesso para sessão {sessao_id}")
+                current_app.logger.info(f"[AI ✅] Relatório salvo – sessão {sessao_id}")
             else:
-                current_app.logger.warning(f"[AI ⚠️] Resultado incompleto — não salvo. Resultado: {resultado}")
+                # JSON inválido ➜ não salva; mantém sessão sem resultado
+                current_app.logger.warning(f"[AI ⚠️] JSON inválido; relatório ignorado.")
                 db.session.rollback()
 
         except Exception as e:
             db.session.rollback()
-            current_app.logger.error(f"[BACKGROUND ERROR] {e}")
+            current_app.logger.error(f"[BACKGROUND EXCEPTION] {e}")
+
 
 # 🔹 Tela para visualizar o relatório
 @user_bp.route('/relatorio')
@@ -144,14 +142,15 @@ def gerar_relatorio():
         flash("Please log in to view the report.", "error")
         return redirect(url_for('auth_views.login_view'))
 
-    user_id = session['user_id']
+    user_id   = session['user_id']
     user_name = session.get('user_name', 'User')
     sessao_id = request.args.get('sessao_id')
 
-    if sessao_id:
-        sessao = TestSession.query.filter_by(id=sessao_id, user_id=user_id).first()
-    else:
-        sessao = TestSession.query.filter_by(user_id=user_id).order_by(TestSession.created_at.desc()).first()
+    sessao = (TestSession.query.filter_by(id=sessao_id, user_id=user_id).first()
+              if sessao_id else
+              TestSession.query.filter_by(user_id=user_id)
+                               .order_by(TestSession.created_at.desc())
+                               .first())
 
     if not sessao:
         flash("No session found.", "warning")
@@ -161,112 +160,98 @@ def gerar_relatorio():
         flash("Report generation is still in progress. Please try again shortly.", "warning")
         return redirect(url_for('user.processando_relatorio', sessao_id=sessao.id))
 
-    resultado_dict = {
-        "nome": sessao.full_name,
-        "birth_date": sessao.birth_date.strftime("%d/%m/%Y") if sessao.birth_date else None,
-        "birth_time": sessao.birth_time,
-        "birth_city": sessao.birth_city,
-        "birth_country": sessao.birth_country,
-        "sun_sign": sessao.sun_sign,
-        "moon_sign": sessao.moon_sign,
-        "ascendant": sessao.ascendant,
-        "life_path": sessao.life_path,
-        "soul_urge": sessao.soul_urge,
-        "expression": sessao.expression,
-        "erro": None,
-        "texto": None
-    }
+    # Caso o resultado seja texto bruto (não-JSON)
+    if not sessao.sun_sign:
+        return render_template("relatorio_bruto.html",
+                               nome=user_name,
+                               texto=sessao.ai_result,
+                               sessao_id=sessao.id)
 
-    # ✅ Preenche valores do JSON salvo (se existirem)
+    # Converte JSON salvo
     try:
-        if isinstance(sessao.ai_result, str):
-            ai_data = json.loads(sessao.ai_result)
-
-            resultado_dict.update({
-                "texto": ai_data.get("texto") or ai_data.get("mensagem"),
-                "sun_sign": ai_data.get("sun_sign") or sessao.sun_sign,
-                "moon_sign": ai_data.get("moon_sign") or sessao.moon_sign,
-                "ascendant": ai_data.get("ascendant") or sessao.ascendant,
-                "life_path": ai_data.get("life_path") or sessao.life_path,
-                "soul_urge": ai_data.get("soul_urge") or sessao.soul_urge,
-                "expression": ai_data.get("expression") or sessao.expression,
-            })
-
+        ai_data = json.loads(sessao.ai_result)
     except Exception as e:
         current_app.logger.error(f"[RELATORIO JSON ERROR] {e}")
-        resultado_dict["texto"] = "Sorry, your report could not be parsed correctly."
+        ai_data = {}
 
-    return render_template("relatorio.html", nome=user_name, resultado=resultado_dict, sessao_id=sessao.id)
+    resultado_dict = {
+        "nome"       : sessao.full_name,
+        "birth_date" : sessao.birth_date.strftime("%d/%m/%Y") if sessao.birth_date else None,
+        "birth_time" : sessao.birth_time,
+        "birth_city" : sessao.birth_city,
+        "birth_country": sessao.birth_country,
+        "sun_sign"   : ai_data.get("sun_sign", sessao.sun_sign),
+        "moon_sign"  : ai_data.get("moon_sign", sessao.moon_sign),
+        "ascendant"  : ai_data.get("ascendant", sessao.ascendant),
+        "life_path"  : ai_data.get("life_path", sessao.life_path),
+        "soul_urge"  : ai_data.get("soul_urge", sessao.soul_urge),
+        "expression" : ai_data.get("expression", sessao.expression),
+        "texto"      : ai_data.get("texto"),
+    }
 
-# 🔹 Exporta o relatório como PDF
+    return render_template("relatorio.html",
+                           nome=user_name,
+                           resultado=resultado_dict,
+                           sessao_id=sessao.id)
+
 @user_bp.route('/relatorio/pdf')
 def relatorio_pdf():
     if 'user_id' not in session:
         flash("You must be logged in to download the PDF.", "error")
         return redirect(url_for('auth_views.login_view'))
 
-    user = User.query.get(session['user_id'])
-    user_id = user.id
-    user_name = session.get('user_name', 'User')
+    user_id   = session['user_id']
     sessao_id = request.args.get('sessao_id')
 
-    sessao = TestSession.query.filter_by(id=sessao_id, user_id=user_id).first() if sessao_id else \
-             TestSession.query.filter_by(user_id=user_id).order_by(TestSession.created_at.desc()).first()
+    # Pega a sessão mais recente se o parâmetro não vier
+    sessao = (TestSession.query.filter_by(id=sessao_id, user_id=user_id).first()
+              if sessao_id else
+              TestSession.query.filter_by(user_id=user_id)
+                               .order_by(TestSession.created_at.desc())
+                               .first())
 
     if not sessao:
         flash("No session found to generate the PDF.", "warning")
         return redirect(url_for('user.preencher_dados'))
 
     if not sessao.ai_result:
-        flash("Report generation is still in progress. Please try again shortly.", "warning")
+        flash("Report is still being generated. Try again soon.", "warning")
         return redirect(url_for('user.processando_relatorio', sessao_id=sessao.id))
 
+    # ⇢ Converte texto/JSON salvo
+    result_dict = (json.loads(sessao.ai_result)
+                   if isinstance(sessao.ai_result, str)
+                   else sessao.ai_result)
+
+    html = render_template(
+        'relatorio_pdf.html',
+        nome = session.get('user_name', 'User'),
+        resultado = result_dict,
+        sessao_id = sessao.id,
+    )
+
+    # Caminho do wkhtmltopdf – pegue do env  ou use o default de container Linux
+    wkhtml_path = os.getenv('WKHTMLTOPDF_PATH', '/usr/local/bin/wkhtmltopdf')
+    config = pdfkit.configuration(wkhtmltopdf=wkhtml_path)
+    options = {
+        'encoding': 'UTF-8',
+        'enable-local-file-access': None,
+        'quiet': ''
+    }
+
     try:
-        import json
-
-        # 🔍 Garante que resultado seja dicionário
-        resultado = json.loads(sessao.ai_result) if isinstance(sessao.ai_result, str) else sessao.ai_result
-
-        html = render_template(
-            "relatorio_pdf.html",
-            nome=user_name,
-            resultado={
-                "nome": sessao.full_name,
-                "birth_date": sessao.birth_date.strftime("%d/%m/%Y") if sessao.birth_date else None,
-                "birth_time": sessao.birth_time,
-                "birth_city": sessao.birth_city,
-                "birth_country": sessao.birth_country,
-                "sun_sign": sessao.sun_sign,
-                "moon_sign": sessao.moon_sign,
-                "ascendant": sessao.ascendant,
-                "life_path": sessao.life_path,
-                "soul_urge": sessao.soul_urge,
-                "expression": sessao.expression,
-                "erro": None,
-                "texto": sessao.ai_result
-            },
-            sessao_id=sessao.id
-        )
-
-        wkhtmltopdf_path = os.getenv("WKHTMLTOPDF_PATH", "/usr/local/bin/wkhtmltopdf")
-        config = pdfkit.configuration(wkhtmltopdf=wkhtmltopdf_path)
-        options = {
-            'encoding': "UTF-8",
-            'enable-local-file-access': None,
-            'quiet': ''
-        }
-
-        pdf = pdfkit.from_string(html, False, configuration=config, options=options)
-
-        response = make_response(pdf)
-        response.headers['Content-Type'] = 'application/pdf'
-        response.headers['Content-Disposition'] = f'attachment; filename=skyai_report_{sessao.id}.pdf'
-        return response
-
+        pdf_bytes = pdfkit.from_string(html, False, configuration=config, options=options)
     except Exception as e:
-        current_app.logger.error(f"[PDF ERROR] Failed to generate PDF: {e}")
-        flash("An error occurred while generating the PDF report.", "danger")
-        return redirect(url_for('user.preencher_dados'))
+        current_app.logger.error(f"[PDF ERROR] {e}")
+        flash("Error generating PDF. Please try later.", "danger")
+        return redirect(url_for('user.gerar_relatorio', sessao_id=sessao.id))
+
+    response = make_response(pdf_bytes)
+    response.headers['Content-Type'] = 'application/pdf'
+    response.headers['Content-Disposition'] = (
+        f'attachment; filename=skyai_report_{sessao.id}.pdf'
+    )
+    return response
 
 @user_bp.route('/select-product', methods=['GET', 'POST'])
 def select_product():
