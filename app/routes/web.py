@@ -39,42 +39,54 @@ def login_view():
 @auth_views.route('/register', methods=['GET', 'POST'])
 def register_view():
     if request.method == 'POST':
-        name = request.form.get('name')
-        email = request.form.get('email')
-        password = request.form.get('password')
-        accepted_terms = request.form.get("accepted_terms")
-        accepted_privacy = request.form.get("accepted_privacy")
-
-        if not accepted_terms or not accepted_privacy:
-            flash("You must accept both the Terms of Use and the Privacy Policy to continue.", "danger")
-            return redirect(url_for('auth_views.register_view'))
-
-        if User.query.filter_by(email=email).first():
-            flash("Email is already in use!", "error")
-            return redirect(url_for('auth_views.register_view'))
-
-        user = User(
-            name=name,
-            email=email,
-            accepted_terms=True,
-            accepted_privacy=True,
-            plan='CosmicLife'  # Plano padrão definido como CosmicLife
-        )
-        user.set_password(password)
-        db.session.add(user)
-        db.session.commit()
-
-        session['user_id'] = user.id
-        session['user_name'] = user.name
-        session['user_plan'] = user.plan
-
         try:
-            enviar_email_boas_vindas(user)
-        except Exception as e:
-            current_app.logger.error(f"Error sending welcome email: {e}")
+            name = request.form.get('name')
+            email = request.form.get('email')
+            password = request.form.get('password')
+            accepted_terms = request.form.get("accepted_terms")
+            accepted_privacy = request.form.get("accepted_privacy")
 
-        flash(f"Registration successful, {name.split()[0]}!", "success")
-        return redirect(url_for('user.preencher_dados'))
+            if not all([name, email, password, accepted_terms, accepted_privacy]):
+                flash("All fields are required.", "warning")
+                return redirect(url_for('auth_views.register_view'))
+
+            if User.query.filter_by(email=email).first():
+                flash("Email is already in use!", "error")
+                return redirect(url_for('auth_views.register_view'))
+
+            user = User(
+                name=name,
+                email=email,
+                accepted_terms=True,
+                accepted_privacy=True,
+                plan='CosmicLife'
+            )
+            user.set_password(password)
+            db.session.add(user)
+            db.session.commit()
+
+            session['user_id'] = user.id
+            session['user_name'] = user.name
+            session['user_plan'] = user.plan
+
+            try:
+                enviar_email_boas_vindas(user)
+            except Exception as e:
+                current_app.logger.error(f"[EMAIL ERROR] {e}")
+
+            flash(f"Registration successful, {name.split()[0]}!", "success")
+            return redirect(url_for('user.preencher_dados'))
+
+        except SQLAlchemyError as e:
+            db.session.rollback()
+            current_app.logger.error(f"[REGISTER ERROR] {e}")
+            flash("Registration failed due to a database error.", "danger")
+            return redirect(url_for('auth_views.register_view'))
+
+        except Exception as e:
+            current_app.logger.error(f"[GENERAL REGISTER ERROR] {e}")
+            flash("An unexpected error occurred. Please try again.", "danger")
+            return redirect(url_for('auth_views.register_view'))
 
     return render_template('register.html')
 
