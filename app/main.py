@@ -25,12 +25,11 @@ def create_app():
     # 🔹 Registrar Blueprints DENTRO do contexto da app
     with app.app_context():
         from app.routes.web import auth_views
-        app.register_blueprint(auth_views)
-
         from app.routes.user import user_bp
-        app.register_blueprint(user_bp)
-
         from app.routes.contato import contato_views
+
+        app.register_blueprint(auth_views)
+        app.register_blueprint(user_bp)
         app.register_blueprint(contato_views)
 
     # 🔹 DEBUG SMTP (somente se FLASK_DEBUG = 1)
@@ -46,7 +45,9 @@ def create_app():
 
     return app
 
+# 🔥 Garante que o Gunicorn encontre o app corretamente
+app = create_app()
+
 # Execução local (somente para testes manuais)
 if __name__ == "__main__":
-    app = create_app()
     app.run(host="0.0.0.0", port=5000, debug=True)
