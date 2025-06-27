@@ -8,6 +8,7 @@ from app.config import Config
 
 import logging
 import smtplib
+import os
 
 # Initialize global extensions
 db = SQLAlchemy()
@@ -17,6 +18,9 @@ mail = Mail()
 def create_app():
     app = Flask(__name__)
     app.config.from_object(Config)
+
+    # 🔎 Verificação explícita do banco em uso
+    print("[DB CHECK] URI ativa:", app.config['SQLALCHEMY_DATABASE_URI'])
 
     db.init_app(app)
     jwt.init_app(app)
@@ -50,4 +54,5 @@ app = create_app()
 
 # Execução local (somente para testes manuais)
 if __name__ == "__main__":
-    app.run(host="0.0.0.0", port=5000, debug=True)
+    port = int(os.environ.get("PORT", 5000))
+    app.run(host="0.0.0.0", port=port, debug=True)
