@@ -6,6 +6,7 @@ from app.services.email import enviar_email_boas_vindas, send_recovery_email
 from datetime import datetime
 from sqlalchemy import func
 import json
+from sqlalchemy.exc import SQLAlchemyError
 
 auth_views = Blueprint('auth_views', __name__)
 
@@ -39,21 +40,22 @@ def login_view():
 @auth_views.route('/register', methods=['GET', 'POST'])
 def register_view():
     if request.method == 'POST':
+        name = request.form.get('name', '').strip()
+        email = request.form.get('email', '').strip().lower()
+        password = request.form.get('password', '')
+        accepted_terms = request.form.get("accepted_terms")
+        accepted_privacy = request.form.get("accepted_privacy")
+
+        if not all([name, email, password, accepted_terms, accepted_privacy]):
+            flash("All fields are required, including terms and privacy agreement.", "warning")
+            return redirect(url_for('auth_views.register_view'))
+
+        existing_user = User.query.filter_by(email=email).first()
+        if existing_user:
+            flash("Email is already in use. Try logging in or resetting your password.", "error")
+            return redirect(url_for('auth_views.register_view'))
+
         try:
-            name = request.form.get('name')
-            email = request.form.get('email')
-            password = request.form.get('password')
-            accepted_terms = request.form.get("accepted_terms")
-            accepted_privacy = request.form.get("accepted_privacy")
-
-            if not all([name, email, password, accepted_terms, accepted_privacy]):
-                flash("All fields are required.", "warning")
-                return redirect(url_for('auth_views.register_view'))
-
-            if User.query.filter_by(email=email).first():
-                flash("Email is already in use!", "error")
-                return redirect(url_for('auth_views.register_view'))
-
             user = User(
                 name=name,
                 email=email,
@@ -79,13 +81,14 @@ def register_view():
 
         except SQLAlchemyError as e:
             db.session.rollback()
-            current_app.logger.error(f"[REGISTER ERROR] {e}")
-            flash("Registration failed due to a database error.", "danger")
+            current_app.logger.error(f"[REGISTER SQL ERROR] {e}")
+            flash("Database error during registration. Please try again later.", "danger")
             return redirect(url_for('auth_views.register_view'))
 
         except Exception as e:
-            current_app.logger.error(f"[GENERAL REGISTER ERROR] {e}")
-            flash("An unexpected error occurred. Please try again.", "danger")
+            db.session.rollback()
+            current_app.logger.error(f"[REGISTER UNEXPECTED ERROR] {e}")
+            flash("An unexpected error occurred. Please try again later.", "danger")
             return redirect(url_for('auth_views.register_view'))
 
     return render_template('register.html')

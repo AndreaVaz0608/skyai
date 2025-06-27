@@ -25,14 +25,23 @@ def preencher_dados():
     if request.method == 'POST':
         user_id = session['user_id']
 
-        full_name = request.form.get('full_name')
-        birth_date_str = request.form.get('birth_date')  # esperado: yyyy-mm-dd
-        birth_time = request.form.get('birth_time')
-        birth_city = request.form.get('birth_city')
-        birth_country = request.form.get('birth_country')
+        # Captura e normaliza campos
+        full_name = request.form.get('full_name', '').strip()
+        birth_date_str = request.form.get('birth_date', '').strip()
+        birth_time = request.form.get('birth_time', '').strip()
+        birth_city = request.form.get('birth_city', '').strip()
+        birth_country = request.form.get('birth_country', '').strip()
 
-        if not all([full_name, birth_date_str, birth_time, birth_city, birth_country]):
-            flash("Please fill in all fields.", "error")
+        # Validação
+        missing_fields = []
+        if not full_name: missing_fields.append("Full name")
+        if not birth_date_str: missing_fields.append("Birth date")
+        if not birth_time: missing_fields.append("Birth time")
+        if not birth_city: missing_fields.append("City")
+        if not birth_country: missing_fields.append("Country")
+
+        if missing_fields:
+            flash(f"Please complete the following fields: {', '.join(missing_fields)}.", "error")
             return render_template("user_data.html")
 
         try:
@@ -41,19 +50,26 @@ def preencher_dados():
             flash("Invalid date format. Please use the date picker.", "error")
             return render_template("user_data.html")
 
-        test_session = TestSession(
-            user_id=user_id,
-            full_name=full_name,
-            birth_date=birth_date,
-            birth_time=birth_time,
-            birth_city=birth_city,
-            birth_country=birth_country
-        )
-        db.session.add(test_session)
-        db.session.commit()
-        session.modified = True
+        try:
+            test_session = TestSession(
+                user_id=user_id,
+                full_name=full_name,
+                birth_date=birth_date,
+                birth_time=birth_time,
+                birth_city=birth_city,
+                birth_country=birth_country
+            )
+            db.session.add(test_session)
+            db.session.commit()
+            session.modified = True
 
-        return redirect(url_for('user.processando_relatorio', sessao_id=test_session.id))
+            return redirect(url_for('user.processando_relatorio', sessao_id=test_session.id))
+
+        except Exception as e:
+            current_app.logger.error(f"[USER DATA ERROR] Failed to save test session: {e}")
+            db.session.rollback()
+            flash("Something went wrong while saving your data. Please try again.", "danger")
+            return render_template("user_data.html")
 
     return render_template('user_data.html')
 
@@ -75,7 +91,14 @@ def gerar_relatorio_background(app, sessao_id):
     with app.app_context():
         try:
             sessao = TestSession.query.get(sessao_id)
+            if not sessao:
+                current_app.logger.error(f"[BACKGROUND ERROR] Sessão {sessao_id} não encontrada.")
+                return
+
             user = User.query.get(sessao.user_id)
+            if not user:
+                current_app.logger.error(f"[BACKGROUND ERROR] Usuário {sessao.user_id} da sessão {sessao_id} não encontrado.")
+                return
 
             dados = {
                 "full_name": sessao.full_name,
@@ -85,31 +108,33 @@ def gerar_relatorio_background(app, sessao_id):
                 "birth_country": sessao.birth_country,
             }
 
+            current_app.logger.info(f"[BACKGROUND] Iniciando geração do relatório para sessão {sessao_id}")
+
             resultado = generate_skyai_report_via_ai(dados)
 
-            if not resultado.get("erro"):
-                # Verifica se o resultado tem conteúdo relevante
-                if resultado.get("texto") and resultado.get("sun_sign"):
-                    current_app.logger.info(f"[DEBUG] Resultado pronto para salvar:\n{json.dumps(resultado, indent=2, ensure_ascii=False)}")
-
-                    sessao.ai_result = json.dumps(resultado, ensure_ascii=False)
-                    sessao.sun_sign = resultado.get("sun_sign")
-                    sessao.moon_sign = resultado.get("moon_sign")
-                    sessao.ascendant = resultado.get("ascendant")
-                    sessao.life_path = resultado.get("life_path")
-                    sessao.soul_urge = resultado.get("soul_urge")
-                    sessao.expression = resultado.get("expression")
-
-                    db.session.commit()
-                    current_app.logger.info(f"[AI ✅] Relatório salvo com sucesso para sessão {sessao_id}")
-                else:
-                    current_app.logger.warning(f"[AI ⚠️] Resultado incompleto — não salvo. Resultado: {resultado}")
-            else:
+            if resultado.get("erro"):
                 current_app.logger.error(f"[AI ❌] Erro ao gerar relatório: {resultado['erro']}")
+                return
 
-            time.sleep(10)
+            if resultado.get("texto") and resultado.get("sun_sign"):
+                current_app.logger.info(f"[AI DEBUG] Resultado:\n{json.dumps(resultado, indent=2, ensure_ascii=False)}")
+
+                sessao.ai_result = json.dumps(resultado, ensure_ascii=False)
+                sessao.sun_sign = resultado.get("sun_sign")
+                sessao.moon_sign = resultado.get("moon_sign")
+                sessao.ascendant = resultado.get("ascendant")
+                sessao.life_path = resultado.get("life_path")
+                sessao.soul_urge = resultado.get("soul_urge")
+                sessao.expression = resultado.get("expression")
+
+                db.session.commit()
+                current_app.logger.info(f"[AI ✅] Relatório salvo com sucesso para sessão {sessao_id}")
+            else:
+                current_app.logger.warning(f"[AI ⚠️] Resultado incompleto — não salvo. Resultado: {resultado}")
+                db.session.rollback()
 
         except Exception as e:
+            db.session.rollback()
             current_app.logger.error(f"[BACKGROUND ERROR] {e}")
 
 # 🔹 Tela para visualizar o relatório
@@ -223,7 +248,8 @@ def relatorio_pdf():
             sessao_id=sessao.id
         )
 
-        config = pdfkit.configuration(wkhtmltopdf=r'C:\Program Files\wkhtmltopdf\bin\wkhtmltopdf.exe')
+        wkhtmltopdf_path = os.getenv("WKHTMLTOPDF_PATH", "/usr/local/bin/wkhtmltopdf")
+        config = pdfkit.configuration(wkhtmltopdf=wkhtmltopdf_path)
         options = {
             'encoding': "UTF-8",
             'enable-local-file-access': None,
