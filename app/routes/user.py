@@ -136,63 +136,85 @@ def gerar_relatorio_background(app, sessao_id):
 
 
 # 🔹 Tela para visualizar o relatório
-@user_bp.route('/relatorio')
+@user_bp.route("/relatorio")
 def gerar_relatorio():
-    if 'user_id' not in session:
+
+    # ─── Permissão ──────────────────────────────────────────────────────
+    if "user_id" not in session:
         flash("Please log in to view the report.", "error")
-        return redirect(url_for('auth_views.login_view'))
+        return redirect(url_for("auth_views.login_view"))
 
-    user_id   = session['user_id']
-    user_name = session.get('user_name', 'User')
-    sessao_id = request.args.get('sessao_id')
+    user_id   = session["user_id"]
+    user_name = session.get("user_name", "User")
+    sessao_id = request.args.get("sessao_id")
 
-    sessao = (TestSession.query.filter_by(id=sessao_id, user_id=user_id).first()
-              if sessao_id else
-              TestSession.query.filter_by(user_id=user_id)
-                               .order_by(TestSession.created_at.desc())
-                               .first())
+    # ─── Recupera a sessão escolhida (ou a mais recente) ────────────────
+    sessao = (
+        TestSession.query.filter_by(id=sessao_id, user_id=user_id).first()
+        if sessao_id
+        else TestSession.query.filter_by(user_id=user_id)
+                              .order_by(TestSession.created_at.desc())
+                              .first()
+    )
 
     if not sessao:
         flash("No session found.", "warning")
-        return redirect(url_for('user.preencher_dados'))
+        return redirect(url_for("user.preencher_dados"))
 
+    # Ainda não terminou
     if not sessao.ai_result:
         flash("Report generation is still in progress. Please try again shortly.", "warning")
-        return redirect(url_for('user.processando_relatorio', sessao_id=sessao.id))
+        return redirect(url_for("user.processando_relatorio", sessao_id=sessao.id))
 
-    # Caso o resultado seja texto bruto (não-JSON)
-    if not sessao.sun_sign:
-        return render_template("relatorio_bruto.html",
-                               nome=user_name,
-                               texto=sessao.ai_result,
-                               sessao_id=sessao.id)
-
-    # Converte JSON salvo
-    try:
-        ai_data = json.loads(sessao.ai_result)
-    except Exception as e:
-        current_app.logger.error(f"[RELATORIO JSON ERROR] {e}")
+    # ─── Converte/normaliza o campo ai_result ───────────────────────────
+    if isinstance(sessao.ai_result, str):
+        try:
+            ai_data = json.loads(sessao.ai_result)            # JSON válido
+        except Exception as e:
+            current_app.logger.error(f"[RELATORIO JSON ERROR] {e}")
+            ai_data = {}                                      # texto bruto
+    elif isinstance(sessao.ai_result, dict):
+        ai_data = sessao.ai_result                            # já é dict
+    else:
         ai_data = {}
 
+    # Se não veio JSON OU não há texto ⇒ exibe página “bruta”
+    if not ai_data.get("texto"):
+        texto_fallback = (
+            sessao.ai_result
+            if isinstance(sessao.ai_result, str)
+            else json.dumps(sessao.ai_result, ensure_ascii=False, indent=2)
+        )
+        return render_template(
+            "relatorio_bruto.html",
+            nome   = user_name,
+            texto  = texto_fallback,
+            sessao_id = sessao.id,
+        )
+
+    # ─── Monta dicionário final para o template bonito ──────────────────
     resultado_dict = {
-        "nome"       : sessao.full_name,
-        "birth_date" : sessao.birth_date.strftime("%d/%m/%Y") if sessao.birth_date else None,
-        "birth_time" : sessao.birth_time,
-        "birth_city" : sessao.birth_city,
+        "nome"        : sessao.full_name,
+        "birth_date"  : sessao.birth_date.strftime("%d/%m/%Y") if sessao.birth_date else None,
+        "birth_time"  : sessao.birth_time,
+        "birth_city"  : sessao.birth_city,
         "birth_country": sessao.birth_country,
-        "sun_sign"   : ai_data.get("sun_sign", sessao.sun_sign),
-        "moon_sign"  : ai_data.get("moon_sign", sessao.moon_sign),
-        "ascendant"  : ai_data.get("ascendant", sessao.ascendant),
-        "life_path"  : ai_data.get("life_path", sessao.life_path),
-        "soul_urge"  : ai_data.get("soul_urge", sessao.soul_urge),
-        "expression" : ai_data.get("expression", sessao.expression),
-        "texto"      : ai_data.get("texto"),
+        "sun_sign"    : ai_data.get("sun_sign",   sessao.sun_sign),
+        "moon_sign"   : ai_data.get("moon_sign",  sessao.moon_sign),
+        "ascendant"   : ai_data.get("ascendant",  sessao.ascendant),
+        "life_path"   : ai_data.get("life_path",  sessao.life_path),
+        "soul_urge"   : ai_data.get("soul_urge",  sessao.soul_urge),
+        "expression"  : ai_data.get("expression", sessao.expression),
+        "texto"       : ai_data.get("texto"),
     }
 
-    return render_template("relatorio.html",
-                           nome=user_name,
-                           resultado=resultado_dict,
-                           sessao_id=sessao.id)
+    # ─── Renderiza a versão formatada ───────────────────────────────────
+    return render_template(
+        "relatorio.html",
+        nome      = user_name,
+        resultado = resultado_dict,
+        sessao_id = sessao.id,
+    )
 
 @user_bp.route('/relatorio/pdf')
 def relatorio_pdf():
