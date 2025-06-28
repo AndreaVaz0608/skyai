@@ -216,8 +216,14 @@ def gerar_relatorio():
         sessao_id = sessao.id,
     )
 
+# ---------------------------------------------------------------------------
+# 🔹 Exporta o relatório como PDF  —  agora com fallback automático WeasyPrint
+# ---------------------------------------------------------------------------
+from weasyprint import HTML               # ← adicione no topo do arquivo
+
 @user_bp.route('/relatorio/pdf')
 def relatorio_pdf():
+    # 1️⃣  Autorização básica
     if 'user_id' not in session:
         flash("You must be logged in to download the PDF.", "error")
         return redirect(url_for('auth_views.login_view'))
@@ -225,7 +231,7 @@ def relatorio_pdf():
     user_id   = session['user_id']
     sessao_id = request.args.get('sessao_id')
 
-    # Pega a sessão mais recente se o parâmetro não vier
+    # 2️⃣  Recupera a sessão
     sessao = (TestSession.query.filter_by(id=sessao_id, user_id=user_id).first()
               if sessao_id else
               TestSession.query.filter_by(user_id=user_id)
@@ -240,38 +246,56 @@ def relatorio_pdf():
         flash("Report is still being generated. Try again soon.", "warning")
         return redirect(url_for('user.processando_relatorio', sessao_id=sessao.id))
 
-    # ⇢ Converte texto/JSON salvo
-    result_dict = (json.loads(sessao.ai_result)
-                   if isinstance(sessao.ai_result, str)
-                   else sessao.ai_result)
+    # 3️⃣  Carrega resultado salvo (texto bruto ou dicionário)
+    try:
+        result_dict = (json.loads(sessao.ai_result)
+                       if isinstance(sessao.ai_result, str)
+                       else sessao.ai_result)
+    except Exception as e:
+        current_app.logger.error(f"[PDF JSON ERROR] {e}")
+        flash("Could not read report data.", "danger")
+        return redirect(url_for('user.gerar_relatorio', sessao_id=sessao.id))
 
-    html = render_template(
-        'relatorio_pdf.html',
-        nome = session.get('user_name', 'User'),
+    # 4️⃣  Renderiza o HTML do relatório
+    html_str = render_template(
+        "relatorio_pdf.html",
+        nome      = session.get("user_name", "User"),
         resultado = result_dict,
         sessao_id = sessao.id,
     )
 
-    # Caminho do wkhtmltopdf – pegue do env  ou use o default de container Linux
-    wkhtml_path = os.getenv('WKHTMLTOPDF_PATH', '/usr/local/bin/wkhtmltopdf')
-    config = pdfkit.configuration(wkhtmltopdf=wkhtml_path)
-    options = {
-        'encoding': 'UTF-8',
-        'enable-local-file-access': None,
-        'quiet': ''
-    }
-
+    # 5️⃣  Tenta gerar com wkhtmltopdf; se não existir, usa WeasyPrint
+    pdf_bytes = None
+    wkhtml_path = os.getenv("WKHTMLTOPDF_PATH", "/usr/local/bin/wkhtmltopdf")
     try:
-        pdf_bytes = pdfkit.from_string(html, False, configuration=config, options=options)
+        if os.path.exists(wkhtml_path):
+            config  = pdfkit.configuration(wkhtmltopdf=wkhtml_path)
+            pdf_bytes = pdfkit.from_string(
+                html_str,
+                False,
+                configuration=config,
+                options={
+                    "quiet": "",
+                    "encoding": "UTF-8",
+                    "enable-local-file-access": None,
+                },
+            )
+        else:
+            raise FileNotFoundError("wkhtmltopdf not found")
     except Exception as e:
-        current_app.logger.error(f"[PDF ERROR] {e}")
-        flash("Error generating PDF. Please try later.", "danger")
-        return redirect(url_for('user.gerar_relatorio', sessao_id=sessao.id))
+        current_app.logger.warning(f"[PDFKIT Fallback] {e} – switching to WeasyPrint")
+        try:
+            pdf_bytes = HTML(string=html_str).write_pdf()
+        except Exception as we:
+            current_app.logger.error(f"[WEASYPRINT ERROR] {we}")
+            flash("Error generating PDF. Please try later.", "danger")
+            return redirect(url_for('user.gerar_relatorio', sessao_id=sessao.id))
 
+    # 6️⃣  Envia o PDF como download
     response = make_response(pdf_bytes)
-    response.headers['Content-Type'] = 'application/pdf'
-    response.headers['Content-Disposition'] = (
-        f'attachment; filename=skyai_report_{sessao.id}.pdf'
+    response.headers["Content-Type"]        = "application/pdf"
+    response.headers["Content-Disposition"] = (
+        f"attachment; filename=skyai_report_{sessao.id}.pdf"
     )
     return response
 
