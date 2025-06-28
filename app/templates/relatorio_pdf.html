@@ -3,64 +3,81 @@
 {% block body_class %}report-page{% endblock %}
 
 {% block content %}
-<div class="report-box" style="max-width: 800px; margin: 2rem auto; font-family: Arial, sans-serif; padding: 2rem; background: #ffffff; color: #111;">
-  
-  <div style="text-align: center;">
-    <img src="{{ url_for('static', filename='img/logo_skyai.png') }}" alt="SkyAI Logo" style="max-height: 60px; margin-bottom: 1.5rem;">
-    <h1 style="color: #222;">Your Personalized Astral Report</h1>
+
+<!-- ======= CONTÊINER PRINCIPAL ======= -->
+<div style="max-width: 860px; margin:2rem auto; padding:0 1rem;">
+
+  <!-- ---------- Cabeçalho ---------- -->
+  <div style="text-align:center; margin-bottom:2rem;">
+      <img src="{{ url_for('static', filename='img/logo_skyai.png') }}"
+           alt="SkyAI Logo" style="max-height:70px">
+      <h1 style="margin-top:.8rem; font-size:2rem; color:#FFD86A;">
+          🌌 Your Personalized Astral Report
+      </h1>
   </div>
 
+  <!-- ---------- bloco de erro ---------- -->
   {% if resultado.erro %}
-    <div class="error-msg" style="margin-top: 1.5rem; background: #ffe6e6; padding: 1rem; border-radius: 8px;">
-      <p style="color: #c00;">🚧 We couldn't complete your astral reading with AI at this moment. Showing fallback information instead.</p>
-      <p><strong>Error Details:</strong> {{ resultado.erro }}</p>
+    <div style="background:#401010; padding:1rem 1.4rem; border-radius:8px;
+                color:#FF9E9E; margin-bottom:1.8rem;">
+        🚧 We couldn’t complete your astral reading.<br>
+        <small><strong>Error:</strong> {{ resultado.erro }}</small>
     </div>
   {% endif %}
 
-  <div class="section" style="margin-top: 2rem;">
-    <h2 style="color: #333; font-size: 1.4rem; margin-bottom: 1rem;">🌟 Profile Summary</h2>
-    <ul style="padding-left: 1.5rem;">
-      <li><strong>🌟 Full Name:</strong> {{ resultado.nome or '—' }}</li>
-      <li><strong>🗅️ Date of Birth:</strong> {{ resultado.birth_date or '—' }}</li>
-      <li><strong>🕰️ Time of Birth:</strong> {{ resultado.birth_time or '—' }}</li>
-      <li><strong>🌍 City of Birth:</strong> {{ resultado.birth_city or '—' }}</li>
-      <li><strong>🌎 Country:</strong> {{ resultado.birth_country or '—' }}</li>
-    </ul>
-  </div>
+  <!-- ---------- PROFILE SUMMARY ---------- -->
+  <section style="background:#111C2C; border-radius:10px; padding:1.4rem 1.6rem; margin-bottom:1.8rem;">
+     <h2 style="color:#FFD86A; font-size:1.35rem; margin-top:0;">🗂️ Profile Summary</h2>
+     <ul style="list-style:none; padding:0; margin-top:.8rem; font-size:1rem; line-height:1.55rem; color:#EAEAEA;">
+        <li><span style="color:#FFD86A;">🌟 Full Name:</span> {{ resultado.nome|default('—') }}</li>
+        <li><span style="color:#FFD86A;">🗅️ Date of Birth:</span> {{ resultado.birth_date|default('—') }}</li>
+        <li><span style="color:#FFD86A;">🕰️ Time of Birth:</span> {{ resultado.birth_time|default('—') }}</li>
+        <li><span style="color:#FFD86A;">🌍 City:</span> {{ resultado.birth_city|default('—') }}</li>
+        <li><span style="color:#FFD86A;">🌎 Country:</span> {{ resultado.birth_country|default('—') }}</li>
+     </ul>
+  </section>
 
-  <div class="section" style="margin-top: 2rem;">
-    <h2 style="color: #333; font-size: 1.4rem; margin-bottom: 1rem;">🌟 Cosmic Insights</h2>
-    {% set blocos = resultado.texto.split('## ') %}
-    {% for bloco in blocos %}
-      {% set texto = bloco.strip() %}
-      {% if texto %}
-        <div class="ai-summary-item" style="margin-bottom: 1.5rem;">
-          {% set partes = texto.split(':', 1) %}
-          {% if partes|length > 1 and partes[0]|length < 70 %}
-            <h3 style="color: #555; font-size: 1.1rem; margin-bottom: 0.5rem;">{{ partes[0]|replace('###','')|trim }}</h3>
-            <p style="margin: 0;">{{ partes[1]|trim }}</p>
-          {% else %}
-            <p style="margin: 0;">{{ texto|replace('###','') }}</p>
-          {% endif %}
-        </div>
-      {% endif %}
-    {% endfor %}
-  </div>
+  <!-- ---------- COSMIC INSIGHTS ---------- -->
+  <section style="background:#111C2C; border-radius:10px; padding:1.4rem 1.6rem; margin-bottom:1.8rem;">
+     <h2 style="color:#FFD86A; font-size:1.35rem; margin-top:0;">🔭 Cosmic Insights</h2>
 
-  <div class="section" style="margin-top: 2rem;">
-    <h2 style="color: #333; font-size: 1.4rem; margin-bottom: 1rem;">🔍 Your Celestial Signatures</h2>
-    <ul style="padding-left: 1.5rem;">
-      <li><strong>Sun Sign:</strong> {{ resultado.sun_sign or '—' }}</li>
-      <li><strong>Moon Sign:</strong> {{ resultado.moon_sign or '—' }}</li>
-      <li><strong>Ascendant:</strong> {{ resultado.ascendant or '—' }}</li>
-      <li><strong>Life Path Number:</strong> {{ resultado.life_path or '—' }}</li>
-      <li><strong>Soul Urge Number:</strong> {{ resultado.soul_urge or '—' }}</li>
-      <li><strong>Expression Number:</strong> {{ resultado.expression or '—' }}</li>
-    </ul>
-  </div>
+     {% set texto_bruto = resultado.texto|default('') %}
+     {% if texto_bruto %}
+        {% for bloco in texto_bruto.split('## ') if bloco.strip() %}
+           {% set bloco_limpo = bloco|trim %}
+           <div style="margin:.9rem 0;">
+               {% set partes = bloco_limpo.split(':', 1) %}
+               {% if partes|length > 1 and partes[0]|length < 70 %}
+                   <h3 style="color:#FFD86A; font-size:1.1rem; margin-bottom:.3rem;">
+                       {{ partes[0]|replace('###','')|trim }}
+                   </h3>
+                   <p style="margin:0; color:#EAEAEA;">{{ partes[1]|trim }}</p>
+               {% else %}
+                   <p style="margin:0; color:#EAEAEA;">{{ bloco_limpo|replace('###','') }}</p>
+               {% endif %}
+           </div>
+        {% endfor %}
+     {% else %}
+        <p style="color:#EAEAEA;">— Insights not available —</p>
+     {% endif %}
+  </section>
 
-  <div style="text-align: center; margin-top: 2rem;">
-    <p style="font-size: 0.9rem; color: #666;">Generated by SkyAI • © {{ current_year or 2025 }}</p>
-  </div>
+  <!-- ---------- SIGNATURES / NUMBERS ---------- -->
+  <section style="background:#111C2C; border-radius:10px; padding:1.4rem 1.6rem;">
+     <h2 style="color:#FFD86A; font-size:1.35rem; margin-top:0;">🔑 Celestial Signatures</h2>
+     <ul style="list-style:none; padding:0; margin-top:.8rem; font-size:1rem; line-height:1.55rem; color:#EAEAEA;">
+        <li><span style="color:#FFD86A;">☀ Sun Sign:</span> {{ resultado.sun_sign|default('—') }}</li>
+        <li><span style="color:#FFD86A;">🌙 Moon Sign:</span> {{ resultado.moon_sign|default('—') }}</li>
+        <li><span style="color:#FFD86A;">⬆ Ascendant:</span> {{ resultado.ascendant|default('—') }}</li>
+        <li><span style="color:#FFD86A;">🔢 Life Path:</span> {{ resultado.life_path|default('—') }}</li>
+        <li><span style="color:#FFD86A;">💓 Soul Urge:</span> {{ resultado.soul_urge|default('—') }}</li>
+        <li><span style="color:#FFD86A;">✨ Expression:</span> {{ resultado.expression|default('—') }}</li>
+     </ul>
+  </section>
+
+  <p style="text-align:center; color:#6A768C; font-size:.85rem; margin-top:2rem;">
+      Generated by SkyAI • © {{ current_year|default(2025) }}
+  </p>
+
 </div>
 {% endblock %}
