@@ -9,7 +9,7 @@ import threading
 import pdfkit                                            # ← pdfkit aqui
 from sqlalchemy import func
 from openai import OpenAI
-
+from weasyprint import HTML               # ← adicione no topo do arquivo
 from app.main import db
 from app.models import User, TestSession, GuruQuestion
 from app.services.perfil_service import (
@@ -219,11 +219,11 @@ def gerar_relatorio():
 # ---------------------------------------------------------------------------
 # 🔹 Exporta o relatório como PDF  —  agora com fallback automático WeasyPrint
 # ---------------------------------------------------------------------------
-from weasyprint import HTML               # ← adicione no topo do arquivo
 
+
+# 🔹 Exporta o relatório como PDF
 @user_bp.route('/relatorio/pdf')
 def relatorio_pdf():
-    # 1️⃣  Autorização básica
     if 'user_id' not in session:
         flash("You must be logged in to download the PDF.", "error")
         return redirect(url_for('auth_views.login_view'))
@@ -231,12 +231,12 @@ def relatorio_pdf():
     user_id   = session['user_id']
     sessao_id = request.args.get('sessao_id')
 
-    # 2️⃣  Recupera a sessão
-    sessao = (TestSession.query.filter_by(id=sessao_id, user_id=user_id).first()
-              if sessao_id else
+    # Última sessão, se não houver parâmetro
+    sessao = (TestSession.query
+              .filter_by(id=sessao_id, user_id=user_id).first() if sessao_id else
               TestSession.query.filter_by(user_id=user_id)
-                               .order_by(TestSession.created_at.desc())
-                               .first())
+                     .order_by(TestSession.created_at.desc())
+                     .first())
 
     if not sessao:
         flash("No session found to generate the PDF.", "warning")
@@ -246,57 +246,47 @@ def relatorio_pdf():
         flash("Report is still being generated. Try again soon.", "warning")
         return redirect(url_for('user.processando_relatorio', sessao_id=sessao.id))
 
-    # 3️⃣  Carrega resultado salvo (texto bruto ou dicionário)
-    try:
-        result_dict = (json.loads(sessao.ai_result)
-                       if isinstance(sessao.ai_result, str)
-                       else sessao.ai_result)
-    except Exception as e:
-        current_app.logger.error(f"[PDF JSON ERROR] {e}")
-        flash("Could not read report data.", "danger")
-        return redirect(url_for('user.gerar_relatorio', sessao_id=sessao.id))
+    # -------- renderiza HTML -------- #
+    result_dict = json.loads(sessao.ai_result) if isinstance(sessao.ai_result, str) else sessao.ai_result
 
-    # 4️⃣  Renderiza o HTML do relatório
-    html_str = render_template(
+    html = render_template(
         "relatorio_pdf.html",
-        nome      = session.get("user_name", "User"),
-        resultado = result_dict,
-        sessao_id = sessao.id,
+        nome=session.get("user_name", "User"),
+        resultado=result_dict,
+        sessao_id=sessao.id,
     )
 
-    # 5️⃣  Tenta gerar com wkhtmltopdf; se não existir, usa WeasyPrint
     pdf_bytes = None
+
+    # -------- 1ª tentativa: wkhtmltopdf -------- #
     wkhtml_path = os.getenv("WKHTMLTOPDF_PATH", "/usr/local/bin/wkhtmltopdf")
     try:
-        if os.path.exists(wkhtml_path):
-            config  = pdfkit.configuration(wkhtmltopdf=wkhtml_path)
-            pdf_bytes = pdfkit.from_string(
-                html_str,
-                False,
-                configuration=config,
-                options={
-                    "quiet": "",
-                    "encoding": "UTF-8",
-                    "enable-local-file-access": None,
-                },
-            )
-        else:
-            raise FileNotFoundError("wkhtmltopdf not found")
+        config  = pdfkit.configuration(wkhtmltopdf=wkhtml_path)
+        options = {
+            "encoding": "UTF-8",
+            "enable-local-file-access": None,
+            "quiet": "",
+        }
+        pdf_bytes = pdfkit.from_string(html, False, configuration=config, options=options)
+
     except Exception as e:
-        current_app.logger.warning(f"[PDFKIT Fallback] {e} – switching to WeasyPrint")
+        current_app.logger.warning("[PDFKIT Fallback] wkhtmltopdf not found – switching to WeasyPrint")
+        current_app.logger.debug(f"[PDFKIT ERROR] {e}")
+
+    # -------- 2ª tentativa: WeasyPrint -------- #
+    if pdf_bytes is None:
         try:
-            pdf_bytes = HTML(string=html_str).write_pdf()
-        except Exception as we:
-            current_app.logger.error(f"[WEASYPRINT ERROR] {we}")
+            from weasyprint import HTML  # não importa PDF/CSS aqui
+            pdf_bytes = HTML(string=html).write_pdf()
+        except Exception as e:
+            current_app.logger.error(f"[WEASYPRINT ERROR] {e}")
             flash("Error generating PDF. Please try later.", "danger")
             return redirect(url_for('user.gerar_relatorio', sessao_id=sessao.id))
 
-    # 6️⃣  Envia o PDF como download
+    # -------- resposta -------- #
     response = make_response(pdf_bytes)
-    response.headers["Content-Type"]        = "application/pdf"
-    response.headers["Content-Disposition"] = (
-        f"attachment; filename=skyai_report_{sessao.id}.pdf"
-    )
+    response.headers["Content-Type"] = "application/pdf"
+    response.headers["Content-Disposition"] = f"attachment; filename=skyai_report_{sessao.id}.pdf"
     return response
 
 @user_bp.route('/select-product', methods=['GET', 'POST'])
