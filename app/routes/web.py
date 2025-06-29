@@ -7,6 +7,7 @@ from datetime import datetime
 from sqlalchemy import func
 import json
 from sqlalchemy.exc import SQLAlchemyError
+from app.services.insights_service import get_past_insights
 
 auth_views = Blueprint('auth_views', __name__)
 
@@ -128,6 +129,7 @@ def logout():
     return redirect(url_for('auth_views.login_view'))
 
 # 🔹 Dashboard com contagem de perguntas ao Guru
+# 🔹 Dashboard com contagem de perguntas ao Guru
 @auth_views.route('/dashboard')
 def dashboard():
     if 'user_id' not in session:
@@ -137,34 +139,19 @@ def dashboard():
     user_id = session['user_id']
     user = User.query.get(user_id)
 
-    sessoes = (
-        TestSession.query
-        .filter_by(user_id=user_id)
-        .order_by(TestSession.created_at.desc())
-        .limit(6)
-        .all()
-    )
-
+    # ▶ relatórios recentes (para o card “Your last reports”)
+    sessoes = (TestSession.query
+               .filter_by(user_id=user_id)
+               .order_by(TestSession.created_at.desc())
+               .limit(6)
+               .all())
     ultima_sessao = sessoes[0] if sessoes else None
-    total = len(sessoes)
+    total         = len(sessoes)
 
-    # ✅ Constrói as recomendações a partir das sessões passadas
-    recomendacoes = []
-    for s in sessoes:
-        if s.ai_result:
-            try:
-                data = json.loads(s.ai_result)
-                recomendacoes.append({
-                    "data": s.created_at.strftime('%d/%m/%Y'),
-                    "mbti": data.get("sun_sign", "—"),
-                    "disc": data.get("moon_sign", "—"),
-                    "eneagrama": data.get("life_path", "—"),
-                    "texto": data.get("texto", "—")[:400] + "..."
-                })
-            except Exception as e:
-                current_app.logger.warning(f"[DASHBOARD JSON PARSE ERROR] Sessão {s.id} - {e}")
+    # ▶ NOVO: key insights prontos p/ exibição
+    insights = get_past_insights(user_id)   # ← serviço criado em insights_service.py
 
-    # 🔮 Quantas perguntas ao Guru esse mês
+    # 🔮 contagem de perguntas do Guru neste mês
     start_of_month = datetime.utcnow().replace(day=1, hour=0, minute=0, second=0, microsecond=0)
     used_questions = db.session.query(func.count()).select_from(GuruQuestion).filter(
         GuruQuestion.user_id == user_id,
@@ -172,14 +159,12 @@ def dashboard():
     ).scalar()
     remaining_questions = max(0, 4 - used_questions)
 
-    # 🔮 Perguntas anteriores respondidas
-    guru_answers = (
-        GuruQuestion.query
-        .filter_by(user_id=user_id)
-        .order_by(GuruQuestion.created_at.desc())
-        .limit(3)
-        .all()
-    )
+    # 🔮 últimas respostas do Guru
+    guru_answers = (GuruQuestion.query
+                    .filter_by(user_id=user_id)
+                    .order_by(GuruQuestion.created_at.desc())
+                    .limit(3)
+                    .all())
 
     return render_template(
         "dashboard.html",
@@ -190,7 +175,7 @@ def dashboard():
         ultima_sessao=ultima_sessao,
         remaining_questions=remaining_questions,
         guru_answers=guru_answers,
-        recomendacoes=recomendacoes  # ✅ Agora está incluído
+        insights=insights               # ← passa para o template
     )
 
 # 🔹 Termos de uso
