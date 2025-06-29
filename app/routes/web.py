@@ -1,3 +1,4 @@
+# app/routes/web.py
 from flask import Blueprint, render_template, request, redirect, url_for, flash, session, current_app
 from app.models import User, TestSession, GuruQuestion
 from app.main import db
@@ -7,7 +8,8 @@ from datetime import datetime
 from sqlalchemy import func
 import json
 from sqlalchemy.exc import SQLAlchemyError
-from app.services.insights_service import get_past_insights
+
+# ⬇️  REMOVIDO:  from app.services.insights_service import get_past_insights
 
 auth_views = Blueprint('auth_views', __name__)
 
@@ -148,9 +150,6 @@ def dashboard():
     ultima_sessao = sessoes[0] if sessoes else None
     total         = len(sessoes)
 
-    # ▶ NOVO: key insights prontos p/ exibição
-    insights = get_past_insights(user_id)   # ← serviço criado em insights_service.py
-
     # 🔮 contagem de perguntas do Guru neste mês
     start_of_month = datetime.utcnow().replace(day=1, hour=0, minute=0, second=0, microsecond=0)
     used_questions = db.session.query(func.count()).select_from(GuruQuestion).filter(
@@ -175,7 +174,6 @@ def dashboard():
         ultima_sessao=ultima_sessao,
         remaining_questions=remaining_questions,
         guru_answers=guru_answers,
-        insights=insights               # ← passa para o template
     )
 
 # 🔹 Termos de uso
