@@ -1,22 +1,26 @@
+# ── IMPORTS ───────────────────────────────────────────────────────────
 from flask import (
     Blueprint, render_template, request, redirect, url_for,
-    flash, session, current_app, make_response          # ← make_response aqui
+    flash, session, current_app, make_response
 )
 from datetime import datetime
 import json
 import os
 import threading
-import pdfkit                                            # ← pdfkit aqui
+import asyncio
+
 from sqlalchemy import func
-from openai import OpenAI
-from weasyprint import HTML               # ← adicione no topo do arquivo
+from pyppeteer import launch
+
 from app.main import db
 from app.models import User, TestSession, GuruQuestion
 from app.services.perfil_service import (
     generate_report_via_ai as generate_skyai_report_via_ai
 )
+# (opcional) import OpenAI somente dentro das funções que usam
 
-user_bp = Blueprint('user', __name__, template_folder='../templates')
+# ── CONFIGURAÇÕES ──────────────────────────────────────────────────────
+user_bp = Blueprint("user", __name__, template_folder="../templates")
 
 # 🔹 Página para o usuário preencher seus dados astrais
 @user_bp.route('/preencher-dados', methods=['GET', 'POST'])
@@ -220,10 +224,27 @@ def gerar_relatorio():
 # 🔹 Exporta o relatório como PDF  —  agora com fallback automático WeasyPrint
 # ---------------------------------------------------------------------------
 
+# ── HELPER: HTML → PDF (Pyppeteer) ─────────────────────────────────────
+async def url_to_pdf_bytes(url: str) -> bytes:
+    """Renderiza a URL no Chromium headless e devolve PDF como bytes."""
+    browser = await launch(args=["--no-sandbox"], headless=True)
+    page = await browser.newPage()
+    await page.goto(url, {"waitUntil": "networkidle0"})
+    await page.emulateMediaType("screen")
+    pdf_bytes = await page.pdf(
+        printBackground=True,
+        format="A4",
+        margin={"top": "20px", "bottom": "20px", "left": "25px", "right": "25px"},
+    )
+    await browser.close()
+    return pdf_bytes
 
-# 🔹 Exporta o relatório como PDF
+# ────────────────────────────────────────────────────────────────────────────────
+# ROTA – Exporta o relatório como PDF idêntico ao HTML
+# ────────────────────────────────────────────────────────────────────────────────
 @user_bp.route('/relatorio/pdf')
 def relatorio_pdf():
+    # ─── Permissão ─────────────────────────────────────────────────────────────
     if 'user_id' not in session:
         flash("You must be logged in to download the PDF.", "error")
         return redirect(url_for('auth_views.login_view'))
@@ -232,11 +253,13 @@ def relatorio_pdf():
     sessao_id = request.args.get('sessao_id')
 
     # Última sessão, se não houver parâmetro
-    sessao = (TestSession.query
-              .filter_by(id=sessao_id, user_id=user_id).first() if sessao_id else
-              TestSession.query.filter_by(user_id=user_id)
-                     .order_by(TestSession.created_at.desc())
-                     .first())
+    sessao = (
+        TestSession.query.filter_by(id=sessao_id, user_id=user_id).first()
+        if sessao_id else
+        TestSession.query.filter_by(user_id=user_id)
+                         .order_by(TestSession.created_at.desc())
+                         .first()
+    )
 
     if not sessao:
         flash("No session found to generate the PDF.", "warning")
@@ -246,47 +269,21 @@ def relatorio_pdf():
         flash("Report is still being generated. Try again soon.", "warning")
         return redirect(url_for('user.processando_relatorio', sessao_id=sessao.id))
 
-    # -------- renderiza HTML -------- #
-    result_dict = json.loads(sessao.ai_result) if isinstance(sessao.ai_result, str) else sessao.ai_result
-
-    html = render_template(
-        "relatorio_pdf.html",
-        nome=session.get("user_name", "User"),
-        resultado=result_dict,
-        sessao_id=sessao.id,
-    )
-
-    pdf_bytes = None
-
-    # -------- 1ª tentativa: wkhtmltopdf -------- #
-    wkhtml_path = os.getenv("WKHTMLTOPDF_PATH", "/usr/local/bin/wkhtmltopdf")
+    # ─── Gera PDF a partir da própria página bonita ───────────────────────────
+    report_url = url_for('user.gerar_relatorio', sessao_id=sessao.id, _external=True)
     try:
-        config  = pdfkit.configuration(wkhtmltopdf=wkhtml_path)
-        options = {
-            "encoding": "UTF-8",
-            "enable-local-file-access": None,
-            "quiet": "",
-        }
-        pdf_bytes = pdfkit.from_string(html, False, configuration=config, options=options)
-
+        pdf_bytes = asyncio.run(url_to_pdf_bytes(report_url))
     except Exception as e:
-        current_app.logger.warning("[PDFKIT Fallback] wkhtmltopdf not found – switching to WeasyPrint")
-        current_app.logger.debug(f"[PDFKIT ERROR] {e}")
+        current_app.logger.error(f"[PDF GENERATION ERROR] {e}")
+        flash("Error generating PDF. Please try later.", "danger")
+        return redirect(url_for('user.gerar_relatorio', sessao_id=sessao.id))
 
-    # -------- 2ª tentativa: WeasyPrint -------- #
-    if pdf_bytes is None:
-        try:
-            from weasyprint import HTML  # não importa PDF/CSS aqui
-            pdf_bytes = HTML(string=html).write_pdf()
-        except Exception as e:
-            current_app.logger.error(f"[WEASYPRINT ERROR] {e}")
-            flash("Error generating PDF. Please try later.", "danger")
-            return redirect(url_for('user.gerar_relatorio', sessao_id=sessao.id))
-
-    # -------- resposta -------- #
+    # ─── Devolve o arquivo ao usuário ─────────────────────────────────────────
     response = make_response(pdf_bytes)
     response.headers["Content-Type"] = "application/pdf"
-    response.headers["Content-Disposition"] = f"attachment; filename=skyai_report_{sessao.id}.pdf"
+    response.headers["Content-Disposition"] = (
+        f"attachment; filename=skyai_report_{sessao.id}.pdf"
+    )
     return response
 
 @user_bp.route('/select-product', methods=['GET', 'POST'])
