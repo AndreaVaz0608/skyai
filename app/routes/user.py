@@ -221,69 +221,91 @@ def gerar_relatorio():
     )
 
 # ---------------------------------------------------------------------------
-# 🔹 Exporta o relatório como PDF  —  agora com fallback automático WeasyPrint
+# 🔹 Exporta o relatório como PDF — gerado diretamente do HTML via Pyppeteer
 # ---------------------------------------------------------------------------
 
-# ── HELPER: HTML → PDF (Pyppeteer) ─────────────────────────────────────
-async def url_to_pdf_bytes(url: str) -> bytes:
-    """Renderiza a URL no Chromium headless e devolve PDF como bytes."""
+async def html_to_pdf_bytes(html: str) -> bytes:
+    """Recebe uma string HTML e devolve o PDF (bytes) gerado pelo Chromium."""
     browser = await launch(args=["--no-sandbox"], headless=True)
     page = await browser.newPage()
-    await page.goto(url, {"waitUntil": "networkidle0"})
-    await page.emulateMediaType("screen")
+
+    # Coloca o HTML diretamente na página invisível
+    await page.setContent(html, waitUntil="networkidle0")
+    await page.emulateMediaType("screen")          # mantém cores de tela
+
     pdf_bytes = await page.pdf(
-        printBackground=True,
         format="A4",
-        margin={"top": "20px", "bottom": "20px", "left": "25px", "right": "25px"},
+        printBackground=True,
+        margin={"top": "0", "bottom": "0", "left": "0", "right": "0"},  # sem moldura
     )
     await browser.close()
     return pdf_bytes
 
-# ────────────────────────────────────────────────────────────────────────────────
-# ROTA – Exporta o relatório como PDF idêntico ao HTML
-# ────────────────────────────────────────────────────────────────────────────────
-@user_bp.route('/relatorio/pdf')
-def relatorio_pdf():
-    # ─── Permissão ─────────────────────────────────────────────────────────────
-    if 'user_id' not in session:
-        flash("You must be logged in to download the PDF.", "error")
-        return redirect(url_for('auth_views.login_view'))
 
-    user_id   = session['user_id']
-    sessao_id = request.args.get('sessao_id')
+@user_bp.route("/relatorio/pdf")
+def relatorio_pdf():
+    # ─── Permissão ────────────────────────────────────────────────────────────
+    if "user_id" not in session:
+        flash("You must be logged in to download the PDF.", "error")
+        return redirect(url_for("auth_views.login_view"))
+
+    user_id   = session["user_id"]
+    sessao_id = request.args.get("sessao_id")
 
     # Última sessão, se não houver parâmetro
     sessao = (
         TestSession.query.filter_by(id=sessao_id, user_id=user_id).first()
-        if sessao_id else
-        TestSession.query.filter_by(user_id=user_id)
-                         .order_by(TestSession.created_at.desc())
-                         .first()
+        if sessao_id
+        else TestSession.query.filter_by(user_id=user_id)
+                              .order_by(TestSession.created_at.desc())
+                              .first()
     )
 
     if not sessao:
         flash("No session found to generate the PDF.", "warning")
-        return redirect(url_for('user.preencher_dados'))
+        return redirect(url_for("user.preencher_dados"))
 
     if not sessao.ai_result:
         flash("Report is still being generated. Try again soon.", "warning")
-        return redirect(url_for('user.processando_relatorio', sessao_id=sessao.id))
+        return redirect(url_for("user.processando_relatorio", sessao_id=sessao.id))
 
-    # ─── Gera PDF a partir da própria página bonita ───────────────────────────
-    report_url = url_for('user.gerar_relatorio', sessao_id=sessao.id, _external=True)
+    # ─── Constrói o MESMO dicionário usado na tela bonita ────────────────────
+    ai_data = json.loads(sessao.ai_result) if isinstance(sessao.ai_result, str) else sessao.ai_result
+
+    resultado_dict = {
+        "nome"        : sessao.full_name,
+        "birth_date"  : sessao.birth_date.strftime("%d/%m/%Y") if sessao.birth_date else None,
+        "birth_time"  : sessao.birth_time,
+        "birth_city"  : sessao.birth_city,
+        "birth_country": sessao.birth_country,
+        "sun_sign"    : ai_data.get("sun_sign",   sessao.sun_sign),
+        "moon_sign"   : ai_data.get("moon_sign",  sessao.moon_sign),
+        "ascendant"   : ai_data.get("ascendant",  sessao.ascendant),
+        "life_path"   : ai_data.get("life_path",  sessao.life_path),
+        "soul_urge"   : ai_data.get("soul_urge",  sessao.soul_urge),
+        "expression"  : ai_data.get("expression", sessao.expression),
+        "texto"       : ai_data.get("texto"),
+    }
+
+    # ─── Renderiza o HTML em string e converte em PDF ─────────────────────────
+    html = render_template(
+        "relatorio.html",
+        nome=session.get("user_name", "User"),
+        resultado=resultado_dict,
+        sessao_id=sessao.id,
+    )
+
     try:
-        pdf_bytes = asyncio.run(url_to_pdf_bytes(report_url))
+        pdf_bytes = asyncio.run(html_to_pdf_bytes(html))
     except Exception as e:
         current_app.logger.error(f"[PDF GENERATION ERROR] {e}")
         flash("Error generating PDF. Please try later.", "danger")
-        return redirect(url_for('user.gerar_relatorio', sessao_id=sessao.id))
+        return redirect(url_for("user.gerar_relatorio", sessao_id=sessao.id))
 
-    # ─── Devolve o arquivo ao usuário ─────────────────────────────────────────
+    # ─── Resposta: devolve o arquivo ao usuário ───────────────────────────────
     response = make_response(pdf_bytes)
     response.headers["Content-Type"] = "application/pdf"
-    response.headers["Content-Disposition"] = (
-        f"attachment; filename=skyai_report_{sessao.id}.pdf"
-    )
+    response.headers["Content-Disposition"] = f"attachment; filename=skyai_report_{sessao.id}.pdf"
     return response
 
 @user_bp.route('/select-product', methods=['GET', 'POST'])
