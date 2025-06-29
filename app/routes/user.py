@@ -227,26 +227,33 @@ def gerar_relatorio():
 # ---------------------------------------------------------------------------
 # 🔹 Helper — HTML → PDF com Pyppeteer 2.x
 # ---------------------------------------------------------------------------
+# ---------------------------------------------------------------------------
+# 🔹 Helper — HTML → PDF com Pyppeteer 2.x
+# ---------------------------------------------------------------------------
 async def html_to_pdf_bytes(html: str) -> bytes:
-    """Converte HTML em PDF (bytes) usando Chromium headless."""
+    """Converte uma string HTML em PDF (bytes) usando Chromium headless."""
     browser = await launch(
         args=["--no-sandbox", "--disable-dev-shm-usage"],
         headless=True,
     )
     page = await browser.newPage()
 
-    # injeta o HTML; 'waitUntil' foi removido na versão 2.x
+    # injeta o HTML (a opção waitUntil saiu na v2)
     await page.setContent(html)
-    await page.emulateMediaType("screen")
 
-    # curto delay para garantir que fontes/imagens terminem de carregar
-    await page.waitForTimeout(500)        # 0,5 s
+    # emular mídia 'screen' — API mudou para emulateMedia() em 2.x
+    if hasattr(page, "emulateMedia"):
+        await page.emulateMedia(media="screen")
+
+    # pequeno delay para fontes/imagens finalizarem o carregamento
+    await page.waitForTimeout(500)   # 0,5 s
 
     pdf_bytes = await page.pdf(
         format="A4",
         printBackground=True,
         margin={"top": "0", "bottom": "0", "left": "0", "right": "0"},
     )
+
     await browser.close()
     return pdf_bytes
 
