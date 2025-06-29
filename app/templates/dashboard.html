@@ -4,78 +4,86 @@
 {% block content %}
 <div class="box-container" style="max-width: 860px;">
 
-  <div class="dashboard-header" style="display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 1rem; margin-bottom: 2.5rem;">
-    <h2 style="margin: 0;">Welcome, {{ nome.split()[0] if nome else 'User' }} 🌟</h2>
-    <a href="{{ url_for('auth_views.logout') }}" style="font-size: 0.9rem; color: #ffffff; text-decoration: none; font-weight: 500; border: 1px solid var(--primary-color); padding: 0.4rem 0.8rem; border-radius: 8px;">Logout</a>
+  <!-- ▸ Cabeçalho -------------------------------------------------------- -->
+  <div class="dashboard-header"
+       style="display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:1rem;margin-bottom:2.5rem;">
+    <h2 style="margin:0;">Welcome, {{ nome.split()[0] if nome else 'User' }} 🌟</h2>
+    <a href="{{ url_for('auth_views.logout') }}"
+       style="font-size:.9rem;color:#fff;text-decoration:none;font-weight:500;border:1px solid var(--primary-color);
+              padding:.4rem .8rem;border-radius:8px;">Logout</a>
   </div>
 
-  <div style="background-color: rgba(255, 255, 255, 0.05); padding: 1rem 1.5rem; border-radius: 12px; margin-bottom: 2rem; color: #ddd;">
+  <!-- ▸ Dados do usuário -------------------------------------------------- -->
+  <div style="background:rgba(255,255,255,.05);padding:1rem 1.5rem;border-radius:12px;margin-bottom:2rem;color:#ddd;">
     <p><strong>Full Name:</strong> {{ nome }}</p>
     <p><strong>Email:</strong> {{ email }}</p>
   </div>
 
-  {% if total > 0 %}
-    {% if ultima_sessao %}
-      <div class="actions" style="display: flex; flex-wrap: wrap; gap: 1rem; margin-bottom: 2rem;">
-        <a href="{{ url_for('user.gerar_relatorio', sessao_id=ultima_sessao.id) }}" class="btn-primary" style="text-align: center; flex: 1 1 auto;">View My Report</a>
-      </div>
+  <!-- ▸ Relatórios & Compatibilidade ------------------------------------- -->
+  {% if total > 0 and ultima_sessao %}
+    <div class="actions" style="display:flex;flex-wrap:wrap;gap:1rem;margin-bottom:2rem;">
+      <a href="{{ url_for('user.gerar_relatorio', sessao_id=ultima_sessao.id) }}"
+         class="btn-primary" style="text-align:center;flex:1 1 auto;">🔍 View My Report</a>
+    </div>
 
-      <div class="ai-summary-box" style="margin-top: 2.5rem; padding: 1.5rem; border-radius: 16px; background: rgba(255, 255, 255, 0.05);">
-        <h3 style="color: #ffdd77; margin-bottom: 1rem;">📋 Key Insights from Your Past Reports</h3>
-        {% for r in recomendacoes %}
-          <div class="ai-summary-item" style="margin-bottom: 1.5rem; padding-bottom: 1.5rem; border-bottom: 1px solid rgba(255, 255, 255, 0.1);">
-            <p><strong>{{ r.data }}</strong></p>
-            <p><strong>Sun:</strong> {{ r.mbti }} &nbsp;&nbsp; <strong>Moon:</strong> {{ r.disc }} &nbsp;&nbsp; <strong>Life Path:</strong> {{ r.eneagrama }}</p>
-            <p>{{ r.texto }}</p>
-          </div>
-        {% endfor %}
-      </div>
-    {% endif %}
+    <!-- 💘 Compatibilidade Amorosa (ocupa o antigo espaço de Key Insights) -->
+    <div class="section-card highlight"
+         style="background:rgba(255,255,255,0.04);padding:1.5rem;border-radius:12px;margin-top:1rem;">
+      <h3 style="color:#ffddcc;margin-bottom:.8rem;">💘 Love Compatibility</h3>
+      <p style="color:#ccc;margin-bottom:1rem;">
+        Discover the cosmic chemistry between you and a partner. Based on birth charts and numerology.
+      </p>
+      <a href="{{ url_for('user.compatibility') }}" class="btn-primary" style="width:100%;">💞 Start Compatibility Test</a>
+    </div>
   {% else %}
-    <p class="no-session" style="margin-top: 1.5rem; font-style: italic; color: #ccc;">No astral reports generated yet. Let's map your stars soon!</p>
+    <p style="margin-top:1.5rem;font-style:italic;color:#ccc;">
+      No astral reports generated yet. Let's map your stars soon!
+    </p>
   {% endif %}
 
-  <div class="actions" style="display: flex; flex-wrap: wrap; gap: 1rem; margin: 2rem 0;">
-    <a href="{{ url_for('user.preencher_dados') }}" class="btn-primary" style="text-align: center; flex: 1 1 auto;">🔮 Generate New Astral Map</a>
+  <!-- ▸ Novo Mapa Astral -------------------------------------------------- -->
+  <div class="actions" style="display:flex;flex-wrap:wrap;gap:1rem;margin:2rem 0;">
+    <a href="{{ url_for('user.preencher_dados') }}"
+       class="btn-primary" style="text-align:center;flex:1 1 auto;">🪐 Generate New Astral Map</a>
   </div>
 
-  <div class="metric" style="font-size: 1.05rem; margin-bottom: 2rem; color: #eee;">
+  <!-- ▸ Métrica de Perguntas --------------------------------------------- -->
+  <div style="font-size:1.05rem;margin-bottom:2rem;color:#eee;">
     🧙 You can still ask <strong>{{ remaining_questions }}</strong> question{{ 's' if remaining_questions != 1 else '' }} to Guru SkyAI this month.
   </div>
 
-  <!-- ✅ Guru SkyAI Form -->
-  <div class="section-card" style="background: rgba(255,255,255,0.04); padding: 1.5rem; border-radius: 12px; margin-top: 2rem;">
-    <h3 class="section-title" style="color: #ffdd77; margin-bottom: 1rem;">🧙‍♂️ Ask the Guru SkyAI</h3>
+  <!-- ▸ Formulário Guru SkyAI -------------------------------------------- -->
+  <div class="section-card"
+       style="background:rgba(255,255,255,0.04);padding:1.5rem;border-radius:12px;margin-top:2rem;">
+    <h3 style="color:#ffdd77;margin-bottom:1rem;">🧙‍♂️ Ask the Guru SkyAI</h3>
     <form method="post" action="{{ url_for('user.ask_guru') }}">
-      <textarea name="question" placeholder="Type your question here..." required style="width: 100%; height: 160px; border-radius: 10px; padding: 1rem; font-size: 1rem; resize: vertical; box-sizing: border-box; margin-bottom: 1rem;"></textarea>
-      <button type="submit" class="btn-primary" style="width: 100%;">🔮 Ask the Guru</button>
+      <textarea name="question" placeholder="Type your question here..." required
+                style="width:100%;height:160px;border-radius:10px;padding:1rem;font-size:1rem;
+                       resize:vertical;box-sizing:border-box;margin-bottom:1rem;"></textarea>
+      <button type="submit" class="btn-primary" style="width:100%;">🔮 Ask the Guru</button>
     </form>
   </div>
 
-  <!-- ✅ Guru SkyAI Responses -->
+  <!-- ▸ Respostas Recentes do Guru --------------------------------------- -->
   {% if guru_answers %}
-    <div class="section-card" style="background: rgba(255,255,255,0.04); padding: 1.5rem; border-radius: 12px; margin-top: 2rem;">
-      <h3 class="section-title" style="color: #FCE495; margin-bottom: 1rem;">🧙‍♀️ Recent Answers from Guru SkyAI</h3>
-      {% for q in guru_answers %}
-        <div class="guru-answer" style="margin-bottom: 2rem; padding-bottom: 1.5rem; border-bottom: 1px solid rgba(255, 255, 255, 0.1);">
-          <p style="color: #ddd;"><strong>📝 Question:</strong> {{ q.question }}</p>
-          {% if q.answer %}
-            <p style="color: #eee; margin-top: 0.5rem;"><strong>🔮 Answer:</strong> {{ q.answer }}</p>
-          {% else %}
-            <p style="color: #aaa; margin-top: 0.5rem;">⏳ Answer pending...</p>
-          {% endif %}
-          <p style="font-size: 0.85rem; color: #999; margin-top: 0.75rem;"><em>{{ q.created_at.strftime('%b %d, %Y %H:%M') }}</em></p>
-        </div>
-      {% endfor %}
-    </div>
-  {% endif %}
-
-  <!-- ✅ Love Compatibility -->
-  <div class="section-card highlight" style="background: rgba(255,255,255,0.04); padding: 1.5rem; border-radius: 12px; margin-top: 2rem;">
-    <h3 class="section-title" style="color: #ffddcc; margin-bottom: 0.8rem;">💘 Love Compatibility</h3>
-    <p style="color: #ccc; margin-bottom: 1rem;">Discover the cosmic chemistry between you and a partner. Based on birth charts and numerology.</p>
-    <a href="{{ url_for('user.compatibility') }}" class="btn-primary" style="width: 100%;">💞 Start Compatibility Test</a>
+  <div class="section-card"
+       style="background:rgba(255,255,255,0.04);padding:1.5rem;border-radius:12px;margin-top:2rem;">
+    <h3 style="color:#FCE495;margin-bottom:1rem;">🧙‍♀️ Recent Answers from Guru SkyAI</h3>
+    {% for q in guru_answers %}
+      <div style="margin-bottom:2rem;padding-bottom:1.5rem;border-bottom:1px solid rgba(255,255,255,0.1);">
+        <p style="color:#ddd;"><strong>📝 Question:</strong> {{ q.question }}</p>
+        {% if q.answer %}
+          <p style="color:#eee;margin-top:.5rem;"><strong>🔮 Answer:</strong> {{ q.answer }}</p>
+        {% else %}
+          <p style="color:#aaa;margin-top:.5rem;">⏳ Answer pending...</p>
+        {% endif %}
+        <p style="font-size:.85rem;color:#999;margin-top:.75rem;">
+          <em>{{ q.created_at.strftime('%b %d, %Y %H:%M') }}</em>
+        </p>
+      </div>
+    {% endfor %}
   </div>
+  {% endif %}
 
 </div>
 {% endblock %}
