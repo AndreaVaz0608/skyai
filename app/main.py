@@ -31,12 +31,12 @@ def create_app() -> Flask:
         from app.routes.web      import auth_views
         from app.routes.user     import user_bp
         from app.routes.contato  import contato_views
-        from app.routes.payments import payments_bp      # ← NOVO
+        from app.routes.payments import payments_bp   # ← NOVO
 
         app.register_blueprint(auth_views)
         app.register_blueprint(user_bp)
         app.register_blueprint(contato_views)
-        app.register_blueprint(payments_bp)              # ← NOVO
+        app.register_blueprint(payments_bp)           # ← NOVO
 
     # ── SMTP Debug (somente em modo DEBUG) ------------------------------
     if app.config.get("DEBUG", False):

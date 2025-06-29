@@ -2,7 +2,7 @@
 import os
 import stripe
 from flask import (
-    Blueprint, request, jsonify,
+    Blueprint, render_template, request, jsonify,
     session, url_for, redirect, current_app
 )
 
@@ -25,7 +25,7 @@ def create_checkout():
         checkout = stripe.checkout.Session.create(
             mode="payment",
             payment_method_types=["card"],
-            customer_email=session.get("user_email"),  # opcional
+            customer_email=session.get("user_email"),  # opcional, se você salvar isso na sessão
             line_items=[{
                 "price": os.getenv("STRIPE_PRICE_ID"),
                 "quantity": 1,
@@ -35,8 +35,11 @@ def create_checkout():
             cancel_url=url_for("auth_views.dashboard", _external=True),
             metadata={"user_id": session["user_id"]},
         )
-        # Para single-page apps: devolve URL; aqui redirecionamos direto
+
+        # Em apps SPA você poderia devolver JSON.
+        # Aqui redirecionamos direto para a página segura do Stripe.
         return redirect(checkout.url)
+
     except Exception as e:
         current_app.logger.error(f"[STRIPE ERROR] {e}")
         return jsonify({"error": "stripe"}), 500
@@ -50,7 +53,8 @@ def thank_you():
     if not session_id:
         return redirect(url_for("auth_views.dashboard"))
 
-    # (opcional) confirmar pagamento via Stripe API:
+    # (Opcional) confirmar pagamento via Stripe:
     # checkout = stripe.checkout.Session.retrieve(session_id)
+    # if checkout.payment_status != "paid": ...
 
     return render_template("thank_you.html")

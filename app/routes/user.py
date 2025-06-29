@@ -1,14 +1,11 @@
 # ── IMPORTS ───────────────────────────────────────────────────────────
-from flask import (
-    Blueprint, render_template, request, redirect, url_for,
-    flash, session, current_app, make_response
-)
+import os, json, threading, asyncio
 from datetime import datetime
-import json
-import os
-import threading
-import asyncio
 
+from flask import (
+    Blueprint, render_template, request, redirect,
+    url_for, flash, session, current_app, make_response
+)
 from sqlalchemy import func
 from pyppeteer import launch
 
@@ -17,6 +14,7 @@ from app.models import User, TestSession, GuruQuestion
 from app.services.perfil_service import (
     generate_report_via_ai as generate_skyai_report_via_ai
 )
+
 # (opcional) import OpenAI somente dentro das funções que usam
 
 # ── CONFIGURAÇÕES ──────────────────────────────────────────────────────
@@ -474,64 +472,76 @@ def compatibility():
 
 @user_bp.route('/ask-guru', methods=['POST'])
 def ask_guru():
-    if 'user_id' not in session:
+    if "user_id" not in session:
         flash("Please log in to ask Guru SkyAI.", "error")
-        return redirect(url_for('auth_views.login_view'))
+        return redirect(url_for("auth_views.login_view"))
 
-    user_id = session['user_id']
-    question = request.form.get("question")
+    user_id  = session["user_id"]
+    question = request.form.get("question", "").strip()
 
-    if not question or len(question.strip()) < 5:
+    if len(question) < 5:
         flash("Please enter a valid question.", "warning")
-        return redirect(url_for('auth_views.dashboard'))
+        return redirect(url_for("auth_views.dashboard"))
 
-    # 🔍 Verifica quantas perguntas foram feitas este mês
-    start_of_month = datetime.utcnow().replace(day=1, hour=0, minute=0, second=0, microsecond=0)
-    questions_this_month = db.session.query(func.count()).select_from(GuruQuestion).filter(
-        GuruQuestion.user_id == user_id,
-        GuruQuestion.created_at >= start_of_month
-    ).scalar()
+    # ▸ 1. pega a última sessão com resultado válido
+    last_session = (TestSession.query
+                    .filter_by(user_id=user_id)
+                    .filter(TestSession.ai_result.isnot(None))
+                    .order_by(TestSession.created_at.desc())
+                    .first())
 
-    if questions_this_month >= 4:
-        flash("⚠️ You’ve reached your 4-question limit for this month. New questions will be available with the next lunar cycle 🌑", "info")
-        return redirect(url_for('auth_views.dashboard'))
+    if not last_session:
+        flash("Generate an astral map first so the Guru can give you a personalised answer.", "info")
+        return redirect(url_for("user.preencher_dados"))
 
-    # 🔮 Gera resposta com OpenAI e salva
-    try:
-        from openai import OpenAI
-        import os
+    # ▸ 2. extrai dados essenciais
+    data = json.loads(last_session.ai_result) if isinstance(last_session.ai_result, str) else last_session.ai_result
+    sun  = data.get("sun_sign",   "unknown")
+    moon = data.get("moon_sign",  "unknown")
+    asc  = data.get("ascendant",  "unknown")
+    life = data.get("life_path",  "unknown")
+    soul = data.get("soul_urge",  "unknown")
+    expr = data.get("expression", "unknown")
 
-        api_key = os.getenv("OPENAI_API_KEY")
-        client = OpenAI(api_key=api_key)
+    # ▸ 3. monta prompt com contexto
+    prompt = f"""
+You are Guru SkyAI, an objective advisor who uses the client's own natal chart
+and numerology to give specific guidance – no mysticism or metaphors.
 
-        prompt = f"""
-You are Guru SkyAI. Respond to the following question using astrology and numerology insights:
+User QUESTION:
+\"\"\"{question}\"\"\"
 
-\"{question}\"
+User CONTEXT:
+- Sun sign: {sun}
+- Moon sign: {moon}
+- Ascendant: {asc}
+- Life-Path number: {life}
+- Soul-Urge number: {soul}
+- Expression number: {expr}
 
-🎯 Your tone must be clear, practical, direct, and empathetic. Avoid poetic language, spiritual metaphors, or vague mystical expressions.
-
-✅ Your response must:
-- Give a specific, actionable recommendation based on astrology and numerology.
-- Mention relevant planetary alignments or numerological meanings only when they help clarify the decision.
-- Avoid metaphors, florid language, or cosmic flourishes.
-- End with a confident, objective conclusion.
-
-⚠️ Do not explain your process or talk about "the universe" or "the stars" symbolically. The user needs help making a real-life decision.
+RULES:
+• Be clear, practical and direct.
+• Reference only the info above (do not invent data).
+• Conclude with a concrete recommendation.
 """
 
+    try:
+        from openai import OpenAI
+        client = OpenAI(api_key=os.getenv("OPENAI_API_KEY"))
+
         response = client.chat.completions.create(
-            model="gpt-4",
+            model="gpt-4o-mini",
             messages=[
-                {"role": "system", "content": "You are Guru SkyAI, the clear, objective and practical cosmic advisor."},
+                {"role": "system", "content": "You are Guru SkyAI, the clear and practical cosmic advisor."},
                 {"role": "user", "content": prompt}
             ],
-            temperature=0.7,
-            max_tokens=800
+            temperature=0.65,
+            max_tokens=700
         )
 
         answer = response.choices[0].message.content.strip()
 
+        # ▸ 4. salvar pergunta + resposta
         new_q = GuruQuestion(user_id=user_id, question=question, answer=answer)
         db.session.add(new_q)
         db.session.commit()
@@ -542,7 +552,7 @@ You are Guru SkyAI. Respond to the following question using astrology and numero
         current_app.logger.error(f"[GURU SKY ERROR] {e}")
         flash("Sorry, Guru SkyAI couldn't answer your question right now.", "danger")
 
-    return redirect(url_for('auth_views.dashboard'))
+    return redirect(url_for("auth_views.dashboard"))
 
 @user_bp.route("/")
 def home():
