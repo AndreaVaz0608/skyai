@@ -186,6 +186,13 @@ def generate_report_via_ai(user_data: dict) -> dict:
         )
 
         raw_output = response.choices[0].message.content.strip()
+
+        # ── Novo: registrar a saída bruta da IA ───────────────────────────────────
+        with open(log_path, 'a', encoding='utf-8') as f:
+            f.write("--- RAW OUTPUT ---\n")
+            f.write(raw_output + "\n")
+            f.write("--- End RAW ---\n")
+
         result_text = raw_output.replace("```json", "").replace("```", "").strip()
 
         try:
