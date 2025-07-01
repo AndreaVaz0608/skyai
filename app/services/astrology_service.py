@@ -206,7 +206,7 @@ def get_astrological_data(
     positions: Dict[str, Dict[str, float | str]] = {}
 
     for name, code in bodies.items():
-        lon, lat, dist, _ = swe.calc_ut(jd_ut, code)[0]
+        lon, lat, dist = swe.calc_ut(jd_ut, code)[0][:3]
         lon = float(lon)
         sign_idx = math.floor((lon + 1e-7) / 30.0) % 12  # epsilon evita erro cusp.
         positions[name] = {
