@@ -408,11 +408,11 @@ def compatibility():
             from app.services.numerology_service import get_numerology
 
             # 🔹 Cálculo real — Pessoa 1
-            astro_1 = get_astrological_signs(birth_1, birth_time_1, birth_city_1, birth_country_1)
+            astro_1 = get_astrological_data(birth_1, birth_time_1, birth_city_1, birth_country_1)
             num_1 = get_numerology(name_1, birth_1)
 
             # 🔹 Cálculo real — Pessoa 2
-            astro_2 = get_astrological_signs(birth_2, birth_time_2, birth_city_2, birth_country_2)
+            astro_2 = get_astrological_data(birth_2, birth_time_2, birth_city_2, birth_country_2)
             num_2 = get_numerology(name_2, birth_2)
 
             # 🔹 Prompt blindado com dados reais
