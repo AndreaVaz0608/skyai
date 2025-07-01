@@ -275,7 +275,7 @@ def relatorio_pdf():
         return redirect(url_for("user.preencher_dados"))
 
     if not sessao.ai_result:
-        flash("Report is still being generated. Try again soon.", "warning")
+        flash("Report is still being generated.", "warning")
         return redirect(url_for("user.processando_relatorio", sessao_id=sessao.id))
 
     # constrói o dicionário e renderiza o HTML exatamente como antes ...
@@ -383,17 +383,17 @@ def compatibility():
         return redirect(url_for('auth_views.login_view'))
 
     if request.method == 'POST':
-        name_1 = request.form.get("name_1")
-        birth_1 = request.form.get("birth_1")
-        birth_time_1 = request.form.get("birth_time_1")
-        birth_city_1 = request.form.get("birth_city_1")
-        birth_country_1 = request.form.get("birth_country_1")
+        name_1 = request.form.get("name_1", "").strip()
+        birth_1 = request.form.get("birth_1", "").strip()
+        birth_time_1 = request.form.get("birth_time_1", "").strip()
+        birth_city_1 = request.form.get("birth_city_1", "").strip()
+        birth_country_1 = request.form.get("birth_country_1", "").strip()
 
-        name_2 = request.form.get("name_2")
-        birth_2 = request.form.get("birth_2")
-        birth_time_2 = request.form.get("birth_time_2")
-        birth_city_2 = request.form.get("birth_city_2")
-        birth_country_2 = request.form.get("birth_country_2")
+        name_2 = request.form.get("name_2", "").strip()
+        birth_2 = request.form.get("birth_2", "").strip()
+        birth_time_2 = request.form.get("birth_time_2", "").strip()
+        birth_city_2 = request.form.get("birth_city_2", "").strip()
+        birth_country_2 = request.form.get("birth_country_2", "").strip()
 
         if not all([
             name_1, birth_1, birth_time_1, birth_city_1, birth_country_1,
@@ -403,19 +403,19 @@ def compatibility():
             return render_template("compatibility.html")
 
         try:
-            # 🔹 IMPORTA OS SERVIÇOS REAIS
+            # 🔹 Importa serviços reais para garantir precisão
             from app.services.astrology_service import get_astrological_signs
             from app.services.numerology_service import get_numerology
 
-            # 🔹 CALCULA PARA PESSOA 1
+            # 🔹 Cálculo real — Pessoa 1
             astro_1 = get_astrological_signs(birth_1, birth_time_1, birth_city_1, birth_country_1)
             num_1 = get_numerology(name_1, birth_1)
 
-            # 🔹 CALCULA PARA PESSOA 2
+            # 🔹 Cálculo real — Pessoa 2
             astro_2 = get_astrological_signs(birth_2, birth_time_2, birth_city_2, birth_country_2)
             num_2 = get_numerology(name_2, birth_2)
 
-            # 🔹 MONTA O PROMPT COM OS DADOS CONCRETOS
+            # 🔹 Prompt blindado com dados reais
             from openai import OpenAI
             api_key = os.getenv("OPENAI_API_KEY")
             client = OpenAI(api_key=api_key)
@@ -427,7 +427,7 @@ Your mission is to generate a practical and clear compatibility analysis between
 The tone must be empathetic, respectful and easy to understand. Avoid poetic language, metaphors or overly spiritual expressions.
 Focus on real insights that help people make conscious relationship decisions.
 
-Based on the following real calculated information:
+Based on the following REAL calculated information:
 
 👤 Person 1:
 - Full Name: {name_1}
@@ -455,11 +455,10 @@ Your analysis must include:
 4. Emotional dynamics: attraction, communication style, potential for emotional growth.
 5. Practical advice: what to watch out for, strengths to build on, and how to grow together or why to reconsider.
 
-⚠️ Rules:
+⚠️ RULES:
+- Base your analysis STRICTLY on the provided calculated signs and numbers.
+- Do NOT recalculate or guess these numbers.
 - No mysticism, no metaphors.
-- Use clear, actionable language.
-- Base your analysis strictly on the provided calculated signs and numbers.
-- Do not recalculate or guess these numbers.
 - Do not explain your process. Just return the final interpretation directly.
 """
 
@@ -474,6 +473,7 @@ Your analysis must include:
             )
 
             result_text = response.choices[0].message.content.strip()
+
             return render_template(
                 "compatibility_result.html",
                 result=result_text,
