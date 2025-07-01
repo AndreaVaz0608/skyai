@@ -268,8 +268,13 @@ def get_astrological_data(
 
 # ---- alias de compatibilidade ---------------------------------
 def get_astrological_signs(*args, **kwargs):
-    """Mantido para código legado — chama get_astrological_data."""
-    return get_astrological_data(*args, **kwargs)
+    """Mantido para código legado — devolve 4 valores esperados."""
+    data = get_astrological_data(*args, **kwargs)
+    sun_sign  = data["positions"]["SUN"]["sign"]
+    moon_sign = data["positions"]["MOON"]["sign"]
+    asc_sign  = data["positions"]["ASC"]["sign"]
+    aspects   = data["aspects"]
+    return sun_sign, moon_sign, asc_sign, aspects
 
 # ── Execução rápida via CLI ---------------------------------------------
 if __name__ == "__main__":
