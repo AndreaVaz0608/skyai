@@ -77,33 +77,44 @@ def get_astrological_signs(
     birth_country: str
 ) -> dict:
     """
-    Retorna:
-      - positions: corpos com longitude, signo e grau
-      - aspects: lista de aspectos
-      - coords, timezone, jd_ut para debug
+    Calcula Sol, Lua, Ascendente + aspectos com precisão mundial.
+    Inclui DEBUG para verificar timezone → UTC → JD → longitude.
     """
     try:
-        # 🔹 Busca coordenadas e timezone mundial
+        # 🔹 1. Coordenadas + timezone
         coords = get_coordinates(birth_city, birth_country)
         tz_str = get_timezone(coords['lat'], coords['lon'])
         tz = pytz.timezone(tz_str)
 
-        # 🔹 Local datetime → UTC → Julian Day
+        # 🔹 2. Monta datetime local
         try:
             naive = datetime.strptime(f"{birth_date} {birth_time}", "%Y-%m-%d %H:%M:%S")
         except ValueError:
             naive = datetime.strptime(f"{birth_date} {birth_time}", "%Y-%m-%d %H:%M")
         local_dt = tz.localize(naive)
+
+        # 🔹 3. Converte para UTC
         utc_dt = local_dt.astimezone(pytz.utc)
 
+        # 🔹 4. Calcula hora decimal UTC
+        utc_decimal = utc_dt.hour + utc_dt.minute / 60 + utc_dt.second / 3600
+
+        # 🔹 5. Julian Day UT
         jd_ut = swe.julday(
             utc_dt.year, utc_dt.month, utc_dt.day,
-            utc_dt.hour + utc_dt.minute / 60 + utc_dt.second / 3600
+            utc_decimal
         )
 
-        print(f"[DEBUG] Local: {local_dt.isoformat()} | UTC: {utc_dt.isoformat()} | TZ: {tz_str} | JD_UT: {jd_ut}")
+        # 🔹 DEBUG Completo
+        print("==== DEBUG ASTRAL ====")
+        print(f"Local datetime: {local_dt.isoformat()}")
+        print(f"UTC datetime:   {utc_dt.isoformat()}")
+        print(f"Timezone used:  {tz_str}")
+        print(f"UTC decimal hr: {utc_decimal:.4f}")
+        print(f"JD_UT:          {jd_ut}")
+        print("======================")
 
-        # 🔹 Planetas principais
+        # 🔹 6. Planetas principais
         bodies = {
             'SUN': swe.SUN, 'MOON': swe.MOON, 'MERCURY': swe.MERCURY,
             'VENUS': swe.VENUS, 'MARS': swe.MARS, 'JUPITER': swe.JUPITER,
@@ -117,24 +128,24 @@ def get_astrological_signs(
             lon = float(data[0][0])
             sign_idx = int(lon // 30) % 12
             positions[name] = {
-                'longitude': round(lon, 4),
+                'longitude': round(lon, 6),
                 'sign': SIGNS[sign_idx],
-                'degree': round(lon % 30, 2)
+                'degree': round(lon % 30, 4)
             }
             print(f"[DEBUG] {name}: {positions[name]}")
 
-        # 🔹 Ascendente
+        # 🔹 7. Ascendente
         asc_data = swe.houses(jd_ut, coords['lat'], coords['lon'])[0]
         asc_lon = float(asc_data[0])
         asc_idx = int(asc_lon // 30) % 12
         positions['ASC'] = {
-            'longitude': round(asc_lon, 4),
+            'longitude': round(asc_lon, 6),
             'sign': SIGNS[asc_idx],
-            'degree': round(asc_lon % 30, 2)
+            'degree': round(asc_lon % 30, 4)
         }
         print(f"[DEBUG] ASC: {positions['ASC']}")
 
-        # 🔹 Aspectos
+        # 🔹 8. Aspectos
         aspects = []
         keys = list(positions.keys())
         for i in range(len(keys)):
@@ -165,3 +176,4 @@ def get_astrological_signs(
     except Exception as e:
         print(f"[Astrology ERROR] {e}")
         return {'error': str(e), 'positions': {}, 'aspects': []}
+
