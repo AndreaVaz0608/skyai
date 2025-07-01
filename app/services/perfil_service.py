@@ -8,7 +8,7 @@ import json
 from datetime import datetime
 from flask import current_app
 from openai import OpenAI
-from app.services.astrology_service import get_astrological_signs
+from app.services.astrology_service import get_astrological_data
 from app.services.numerology_service import get_numerology
 
 def generate_skyai_prompt(user_data: dict) -> str:
@@ -26,7 +26,7 @@ def generate_skyai_prompt(user_data: dict) -> str:
     birth_date_iso = birth_date_obj.isoformat()
     display_date = birth_date_obj.strftime("%m/%d/%Y")
 
-    astro = get_astrological_signs(birth_date_iso, birth_time, birth_city, birth_country)
+    astro = get_astrological_data(birth_date_iso, birth_time, birth_city, birth_country)
     if astro.get("error"):
         current_app.logger.error(f"[Astrology ERROR] {astro.get('error')}")
         raise RuntimeError("Falha ao calcular signos astrológicos; verifique logs.")

@@ -14,7 +14,7 @@ from app.models import User, TestSession, GuruQuestion
 from app.services.perfil_service import (
     generate_report_via_ai as generate_skyai_report_via_ai
 )
-from app.services.astrology_service import get_astrological_signs
+from app.services.astrology_service import get_astrological_data
 from app.services.numerology_service import get_numerology
 
 # (opcional) import OpenAI somente dentro das funções que usam
@@ -404,7 +404,7 @@ def compatibility():
 
         try:
             # 🔹 Importa serviços reais para garantir precisão
-            from app.services.astrology_service import get_astrological_signs
+            from app.services.astrology_service import get_astrological_data
             from app.services.numerology_service import get_numerology
 
             # 🔹 Cálculo real — Pessoa 1
