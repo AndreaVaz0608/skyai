@@ -163,24 +163,3 @@ def get_astrological_signs(
     except Exception as e:
         print(f"[Astrology ERROR] {e}")
         return {'error': str(e), 'positions': {}, 'aspects': []}
-
-
-# ✅ Teste local: apenas para debug manual
-if __name__ == "__main__":
-    test_result = get_astrological_signs(
-        birth_date="1991-03-25",
-        birth_time="08:15",
-        birth_city="São Paulo",
-        birth_country="Brazil"
-    )
-
-    if "error" in test_result:
-        print("[TEST FAILED]", test_result["error"])
-    else:
-        print("\n✅ [TEST PASSED] Astro Profile:")
-        for name, data in test_result["positions"].items():
-            print(f"→ {name}: {data['sign']} {data['degree']}° (lon: {data['longitude']})")
-
-        print("\n📐 Aspects:")
-        for asp in test_result["aspects"]:
-            print(f"{asp['body1']} {asp['aspect']} {asp['body2']} | {asp['angle']}° (orb: {asp['orb']}°)")

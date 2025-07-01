@@ -14,6 +14,8 @@ from app.models import User, TestSession, GuruQuestion
 from app.services.perfil_service import (
     generate_report_via_ai as generate_skyai_report_via_ai
 )
+from app.services.astrology_service import get_astrological_signs
+from app.services.numerology_service import get_numerology
 
 # (opcional) import OpenAI somente dentro das funções que usam
 
@@ -165,7 +167,7 @@ def gerar_relatorio():
 
     # Ainda não terminou
     if not sessao.ai_result:
-        flash("Report generation is still in progress. Please try again shortly.", "warning")
+        flash("Report generation is still in progress.", "warning")
         return redirect(url_for("user.processando_relatorio", sessao_id=sessao.id))
 
     # ─── Converte/normaliza o campo ai_result ───────────────────────────
@@ -400,50 +402,66 @@ def compatibility():
             flash("Please fill in all fields for both people.", "warning")
             return render_template("compatibility.html")
 
-        # 🔮 Chamada para IA do Guru SkyAI
         try:
+            # 🔹 IMPORTA OS SERVIÇOS REAIS
+            from app.services.astrology_service import get_astrological_signs
+            from app.services.numerology_service import get_numerology
+
+            # 🔹 CALCULA PARA PESSOA 1
+            astro_1 = get_astrological_signs(birth_1, birth_time_1, birth_city_1, birth_country_1)
+            num_1 = get_numerology(name_1, birth_1)
+
+            # 🔹 CALCULA PARA PESSOA 2
+            astro_2 = get_astrological_signs(birth_2, birth_time_2, birth_city_2, birth_country_2)
+            num_2 = get_numerology(name_2, birth_2)
+
+            # 🔹 MONTA O PROMPT COM OS DADOS CONCRETOS
             from openai import OpenAI
             api_key = os.getenv("OPENAI_API_KEY")
             client = OpenAI(api_key=api_key)
 
             prompt = f"""
-            You are Guru SkyAI, an expert in compatibility, astrology, and numerology.
+You are Guru SkyAI, an expert in compatibility, astrology, and numerology.
 
-            Your mission is to generate a practical and clear compatibility analysis between two people. 
-            The tone must be empathetic, respectful and easy to understand. Avoid poetic language, metaphors or overly spiritual expressions. 
-            Focus on real insights that help people make conscious relationship decisions.
+Your mission is to generate a practical and clear compatibility analysis between two people.
+The tone must be empathetic, respectful and easy to understand. Avoid poetic language, metaphors or overly spiritual expressions.
+Focus on real insights that help people make conscious relationship decisions.
 
-            Based on the following information:
+Based on the following real calculated information:
 
-            👤 Person 1:
-            - Full Name: {name_1}
-            - Birth Date: {birth_1}
-            - Birth Time: {birth_time_1}
-            - Birth City: {birth_city_1}
-            - Birth Country: {birth_country_1}
+👤 Person 1:
+- Full Name: {name_1}
+- Sun: {astro_1['positions']['SUN']['sign']}
+- Moon: {astro_1['positions']['MOON']['sign']}
+- Ascendant: {astro_1['positions']['ASC']['sign']}
+- Life Path: {num_1['life_path']}
+- Soul Urge: {num_1['soul_urge']}
+- Expression: {num_1['expression']}
 
-            👤 Person 2:
-            - Full Name: {name_2}
-            - Birth Date: {birth_2}
-            - Birth Time: {birth_time_2}
-            - Birth City: {birth_city_2}
-            - Birth Country: {birth_country_2}
+👤 Person 2:
+- Full Name: {name_2}
+- Sun: {astro_2['positions']['SUN']['sign']}
+- Moon: {astro_2['positions']['MOON']['sign']}
+- Ascendant: {astro_2['positions']['ASC']['sign']}
+- Life Path: {num_2['life_path']}
+- Soul Urge: {num_2['soul_urge']}
+- Expression: {num_2['expression']}
 
-            Your analysis must include:
+Your analysis must include:
 
-            1. A summary of their compatibility level (e.g. High, Medium, Low).
-            2. Key alignments or conflicts between their Sun, Moon, and Ascendant signs.
-            3. Numerology compatibility: Life Path, Soul Urge, and Expression numbers.
-            4. Emotional dynamics: attraction, communication style, potential for emotional growth.
-            5. Practical advice: what to watch out for, strengths to build on, and how to grow together or why to reconsider.
+1. A summary of their compatibility level (e.g. High, Medium, Low).
+2. Key alignments or conflicts between their Sun, Moon, and Ascendant signs.
+3. Numerology compatibility: Life Path, Soul Urge, and Expression numbers.
+4. Emotional dynamics: attraction, communication style, potential for emotional growth.
+5. Practical advice: what to watch out for, strengths to build on, and how to grow together or why to reconsider.
 
-            ⚠️ Rules:
-            - No mysticism, no metaphors.
-            - Use clear, actionable language.
-            - Answer as if the person needs to make a real-life decision, and your advice will guide them.
-
-            Do not explain your process. Just return the final interpretation directly.
-            """
+⚠️ Rules:
+- No mysticism, no metaphors.
+- Use clear, actionable language.
+- Base your analysis strictly on the provided calculated signs and numbers.
+- Do not recalculate or guess these numbers.
+- Do not explain your process. Just return the final interpretation directly.
+"""
 
             response = client.chat.completions.create(
                 model="gpt-4",
