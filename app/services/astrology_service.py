@@ -266,6 +266,10 @@ def get_astrological_data(
         "jd_ut": jd_ut,
     }
 
+# ---- alias de compatibilidade ---------------------------------
+def get_astrological_signs(*args, **kwargs):
+    """Mantido para código legado — chama get_astrological_data."""
+    return get_astrological_data(*args, **kwargs)
 
 # ── Execução rápida via CLI ---------------------------------------------
 if __name__ == "__main__":
