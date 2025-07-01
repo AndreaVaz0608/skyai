@@ -1,6 +1,6 @@
-# app/services/astrology_service.py
 """
-Serviço de astrologia para Sky.AI: cálculo de signos, graus e aspectos com precisão elevada usando Swiss Ephemeris (pyswisseph).
+Serviço de astrologia para Sky.AI: cálculo mundial de signos, graus e aspectos
+com Swiss Ephemeris (pyswisseph) + TimezoneFinder + OpenCage.
 """
 
 import os
@@ -9,28 +9,28 @@ import swisseph as swe
 import pytz
 from datetime import datetime
 
-# Configurar path dos efemérides (use variável de ambiente ou padrão do pacote)
+# ── Configura efemérides ────────────────────────────────
 eph_path = os.getenv('SWISS_EPHEMERIS_DATA_PATH')
 if eph_path:
     swe.set_ephe_path(eph_path)
 
-# Lista de aspectos principais (ângulos em graus)
-ASPECTS_LIST = [
-    (0,   "Conjunction"),
-    (60,  "Sextile"),
-    (90,  "Square"),
-    (120, "Trine"),
-    (150, "Quincunx"),
-    (180, "Opposition")
-]
-
-# Signos astrológicos em ordem
+# ── Lista de signos ──────────────────────────────────────
 SIGNS = [
     "Aries", "Taurus", "Gemini", "Cancer", "Leo", "Virgo",
     "Libra", "Scorpio", "Sagittarius", "Capricorn", "Aquarius", "Pisces"
 ]
 
-# Fallback de timezonefinder
+# ── Aspectos principais ─────────────────────────────────
+ASPECTS_LIST = [
+    (0, "Conjunction"),
+    (60, "Sextile"),
+    (90, "Square"),
+    (120, "Trine"),
+    (150, "Quincunx"),
+    (180, "Opposition")
+]
+
+# ── Fallback TimezoneFinder ─────────────────────────────
 try:
     from timezonefinder import TimezoneFinder
     _tf = TimezoneFinder()
@@ -41,16 +41,13 @@ except ImportError:
     def get_timezone(lat: float, lon: float) -> str:
         return os.getenv('DEFAULT_TIMEZONE', 'UTC')
 
-# Busca coordenadas via OpenCage API
+# ── Busca coordenadas via OpenCage ──────────────────────
 def get_coordinates(city: str, country: str) -> dict:
     api_key = os.getenv("OPENCAGE_API_KEY")
     if not api_key:
         raise RuntimeError("OPENCAGE_API_KEY is not set.")
     query = f"{city.strip()}, {country.strip()}"
-    url = (
-        f"https://api.opencagedata.com/geocode/v1/json?q={query}"
-        f"&key={api_key}&limit=1&language=en"
-    )
+    url = f"https://api.opencagedata.com/geocode/v1/json?q={query}&key={api_key}&limit=1&language=en"
     resp = requests.get(url, timeout=10)
     data = resp.json()
     if not data.get('results'):
@@ -58,21 +55,21 @@ def get_coordinates(city: str, country: str) -> dict:
     geom = data['results'][0]['geometry']
     return {"lat": float(geom['lat']), "lon": float(geom['lng'])}
 
-# Verifica se ângulo configura aspecto dentro do orbe
+# ── Verifica se ângulo configura aspecto ────────────────
 def is_aspect(angle: float, target: float, orb_max: float) -> bool:
     diff = abs(angle - target)
     if diff > 180:
         diff = 360 - diff
     return diff <= orb_max
 
-# Calcula orbe exato
+# ── Calcula orbe exato ──────────────────────────────────
 def calc_orb(angle: float, target: float) -> float:
     diff = abs(angle - target)
     if diff > 180:
         diff = 360 - diff
     return diff
 
-# Função principal: retorna posições e aspectos
+# ── Função principal ────────────────────────────────────
 def get_astrological_signs(
     birth_date: str,
     birth_time: str,
@@ -81,16 +78,17 @@ def get_astrological_signs(
 ) -> dict:
     """
     Retorna:
-      - positions: dict de corpos com longitude, signo e grau
-      - aspects: lista de aspectos entre os corpos
+      - positions: corpos com longitude, signo e grau
+      - aspects: lista de aspectos
+      - coords, timezone, jd_ut para debug
     """
     try:
-        # Geolocalização e timezone
+        # 🔹 Busca coordenadas e timezone mundial
         coords = get_coordinates(birth_city, birth_country)
         tz_str = get_timezone(coords['lat'], coords['lon'])
         tz = pytz.timezone(tz_str)
 
-        # Parsing data/hora local
+        # 🔹 Local datetime → UTC → Julian Day
         try:
             naive = datetime.strptime(f"{birth_date} {birth_time}", "%Y-%m-%d %H:%M:%S")
         except ValueError:
@@ -98,16 +96,14 @@ def get_astrological_signs(
         local_dt = tz.localize(naive)
         utc_dt = local_dt.astimezone(pytz.utc)
 
-        # Cálculo de Julian Day (UT)
         jd_ut = swe.julday(
             utc_dt.year, utc_dt.month, utc_dt.day,
             utc_dt.hour + utc_dt.minute / 60 + utc_dt.second / 3600
         )
 
-        print(f"[DEBUG] DateTime UTC: {utc_dt.isoformat()} | JD_UT: {jd_ut}")
-        print(f"[DEBUG] Coords: {coords} | TZ: {tz_str}")
+        print(f"[DEBUG] Local: {local_dt.isoformat()} | UTC: {utc_dt.isoformat()} | TZ: {tz_str} | JD_UT: {jd_ut}")
 
-        # Posições planetárias
+        # 🔹 Planetas principais
         bodies = {
             'SUN': swe.SUN, 'MOON': swe.MOON, 'MERCURY': swe.MERCURY,
             'VENUS': swe.VENUS, 'MARS': swe.MARS, 'JUPITER': swe.JUPITER,
@@ -118,16 +114,16 @@ def get_astrological_signs(
         positions = {}
         for name, code in bodies.items():
             data = swe.calc_ut(jd_ut, code)
-            lon = float(data[0][0])  # ✅ Correção definitiva
+            lon = float(data[0][0])
             sign_idx = int(lon // 30) % 12
             positions[name] = {
                 'longitude': round(lon, 4),
                 'sign': SIGNS[sign_idx],
                 'degree': round(lon % 30, 2)
             }
-            print(f"[DEBUG] {name} → lon: {lon:.4f}, sign: {SIGNS[sign_idx]}, deg: {lon % 30:.2f}")
+            print(f"[DEBUG] {name}: {positions[name]}")
 
-        # Ascendente
+        # 🔹 Ascendente
         asc_data = swe.houses(jd_ut, coords['lat'], coords['lon'])[0]
         asc_lon = float(asc_data[0])
         asc_idx = int(asc_lon // 30) % 12
@@ -136,9 +132,9 @@ def get_astrological_signs(
             'sign': SIGNS[asc_idx],
             'degree': round(asc_lon % 30, 2)
         }
-        print(f"[DEBUG] ASC → lon: {asc_lon:.4f}, sign: {SIGNS[asc_idx]}, deg: {asc_lon % 30:.2f}")
+        print(f"[DEBUG] ASC: {positions['ASC']}")
 
-        # Cálculo de aspectos
+        # 🔹 Aspectos
         aspects = []
         keys = list(positions.keys())
         for i in range(len(keys)):
@@ -158,7 +154,13 @@ def get_astrological_signs(
                             'orb': round(calc_orb(angle, target), 2)
                         })
 
-        return {'positions': positions, 'aspects': aspects}
+        return {
+            'positions': positions,
+            'aspects': aspects,
+            'coords': coords,
+            'timezone': tz_str,
+            'jd_ut': jd_ut
+        }
 
     except Exception as e:
         print(f"[Astrology ERROR] {e}")
