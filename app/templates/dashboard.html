@@ -87,11 +87,13 @@
 
 </div>
 <!-- Alerta do Guru SkyAI -->
-{% if limit_exceeded %}
-  <div class="guru-alert">
-    ⚠️ You have reached your question limit for Guru SkyAI.<br>
-    Upgrade your plan or wait for a reset.
-  </div>
-{% endif %}
+<div class="box-container" style="position: relative; max-width: 860px;">
+  <!-- ALERTA dentro do container -->
+  {% if limit_exceeded %}
+    <div class="guru-alert">
+      ⚠️ You have reached your question limit for Guru SkyAI.<br>
+      Upgrade your plan or wait for a reset.
+    </div>
+  {% endif %}
 
 {% endblock %}

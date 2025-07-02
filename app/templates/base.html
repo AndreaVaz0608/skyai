@@ -231,22 +231,22 @@
     }
 
     .guru-alert {
-      position: fixed;
-      top: 20px;          /* distância do topo */
+      position: absolute;      /* 🔑 Dentro do container relativo */
+      top: -20px;              /* Sobe um pouco para sobrepor a borda do card */
       left: 50%;
       transform: translateX(-50%);
-      background-color: #fff3cd;  /* Amarelo suave */
-      color: #856404;             /* Contraste */
-      padding: 1rem 1.5rem;
+      background-color: #fff3cd;
+      color: #856404;
+      font-weight: 600;
+      padding: 0.75rem 1.5rem;
       border: 1px solid #ffeeba;
       border-radius: 8px;
       text-align: center;
-      font-size: 1rem;
-      line-height: 1.4;
-      z-index: 1000;      /* Fica acima de tudo */
+      width: calc(100% - 40px);  /* Para respeitar as bordas do container */
+      box-sizing: border-box;
       box-shadow: 0 4px 10px rgba(0,0,0,0.1);
+      z-index: 10;              /* Sobrepõe o conteúdo interno */
     }
-
   </style>
   
   {% block styles %}{% endblock %}
