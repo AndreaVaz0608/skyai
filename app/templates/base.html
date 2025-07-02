@@ -229,25 +229,26 @@
     .footer-links a:hover {
       text-decoration: underline;
     }
+
     .guru-alert {
-      position: fixed;           /* Torna o alerta fixo na tela */
-      top: 20px;                 /* Distância do topo */
-      left: 50%;                 /* Centraliza horizontalmente */
+      position: fixed;
+      top: 20px;          /* distância do topo */
+      left: 50%;
       transform: translateX(-50%);
-      max-width: 600px;
-      background-color: #fff3cd; /* Amarelo suave */
-      color: #856404;            /* Contraste */
+      background-color: #fff3cd;  /* Amarelo suave */
+      color: #856404;             /* Contraste */
       padding: 1rem 1.5rem;
       border: 1px solid #ffeeba;
       border-radius: 8px;
       text-align: center;
       font-size: 1rem;
       line-height: 1.4;
-      z-index: 9999;             /* Fica acima de tudo */
-      box-shadow: 0 2px 6px rgba(0,0,0,0.2);
+      z-index: 1000;      /* Fica acima de tudo */
+      box-shadow: 0 4px 10px rgba(0,0,0,0.1);
     }
-  </style>
 
+  </style>
+  
   {% block styles %}{% endblock %}
 </head>
 <body class="{% block body_class %}{% endblock %}">
