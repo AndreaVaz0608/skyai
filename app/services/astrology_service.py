@@ -37,6 +37,9 @@ EPH_PATH = os.getenv("SWISS_EPHEMERIS_DATA_PATH")
 if EPH_PATH:
     swe.set_ephe_path(EPH_PATH)
 
+# 🔹 Para precisão máxima do algoritmo:
+SWIEPH_FLAG = swe.FLG_SWIEPH
+
 # ── Signos ───────────────────────────────────────────────
 SIGNS: List[str] = [
     "Aries", "Taurus", "Gemini", "Cancer", "Leo", "Virgo",
@@ -58,7 +61,7 @@ DEFAULT_TZ = os.getenv("DEFAULT_TIMEZONE", "UTC")
 
 try:
     from zoneinfo import ZoneInfo  # Python ≥ 3.9
-except ImportError:  # pragma: no cover — fallback antigo
+except ImportError:  # pragma: no cover — fallback antigo
     try:
         from pytz import timezone as ZoneInfo  # type: ignore
     except ImportError as err:  # pragma: no cover
@@ -179,10 +182,9 @@ def get_astrological_data(
     dt_format = "%Y-%m-%d %H:%M:%S" if len(birth_time.split(":")) == 3 else "%Y-%m-%d %H:%M"
     naive_local = datetime.strptime(f"{birth_date} {birth_time}", dt_format)
 
-    # Detecta horário de verão ambíguo
     try:
         local_dt = naive_local.replace(tzinfo=tzinfo)
-    except Exception as e:  # zoneinfo não gera ambíguo; pytz sim
+    except Exception as e:
         raise ValueError(f"Falha ao aplicar timezone ({tz_str}): {e}")
 
     # 3) Converte para UTC e JD -------------------------------------------
@@ -206,25 +208,29 @@ def get_astrological_data(
     positions: Dict[str, Dict[str, float | str]] = {}
 
     for name, code in bodies.items():
-        lon, lat, dist = swe.calc_ut(jd_ut, code)[0][:3]
+        lon, lat, dist = swe.calc_ut(jd_ut, code, flag=SWIEPH_FLAG)[0][:3]  # ✅ Usa flag Swiss Ephemeris real
         lon = float(lon)
-        sign_idx = math.floor((lon + 1e-7) / 30.0) % 12  # epsilon evita erro cusp.
+        sign_idx = int(lon / 30.0) % 12  # ✅ Usa int() estável p/ cusp
+        degree = math.fmod(lon, 30.0)    # ✅ Usa fmod para evitar erro float
+
         positions[name] = {
             "longitude": round(lon, 6),
             "sign": SIGNS[sign_idx],
-            "degree": round(lon % 30.0, 4),
+            "degree": round(degree, 4),
         }
         if debug:
             print(f"[DEBUG] {name:7}: {positions[name]}")
 
     # 5) Ascendente --------------------------------------------------------
     house_cusps, ascmc = swe.houses(jd_ut, coords["lat"], coords["lon"])
-    asc_lon = float(ascmc[0])  # 0 = ASC
-    asc_idx = math.floor((asc_lon + 1e-7) / 30.0) % 12
+    asc_lon = float(ascmc[0])
+    asc_idx = int(asc_lon / 30.0) % 12
+    asc_degree = math.fmod(asc_lon, 30.0)
+
     positions["ASC"] = {
         "longitude": round(asc_lon, 6),
         "sign": SIGNS[asc_idx],
-        "degree": round(asc_lon % 30.0, 4),
+        "degree": round(asc_degree, 4),
     }
     if debug:
         print(f"[DEBUG] ASC    : {positions['ASC']}")
@@ -234,8 +240,8 @@ def get_astrological_data(
     keys = list(positions.keys())
     for i, body1 in enumerate(keys):
         for body2 in keys[i + 1 :]:
-            a_lon = positions[body1]["longitude"]  # type: ignore[index]
-            b_lon = positions[body2]["longitude"]  # type: ignore[index]
+            a_lon = positions[body1]["longitude"]
+            b_lon = positions[body2]["longitude"]
             angle = _angle_distance(a_lon, b_lon)
             for target, asp_name in ASPECTS_LIST:
                 if is_aspect(angle, target, orb_max=6):
