@@ -208,7 +208,7 @@ def get_astrological_data(
     positions: Dict[str, Dict[str, float | str]] = {}
 
     for name, code in bodies.items():
-        lon, lat, dist = swe.calc_ut(jd_ut, code, flag=SWIEPH_FLAG)[0][:3]  # ✅ Usa flag Swiss Ephemeris real
+        lon, lat, dist = swe.calc_ut(jd_ut, code, SWIEPH_FLAG)[0][:3] # ✅ Usa flag Swiss Ephemeris real
         lon = float(lon)
         sign_idx = int(lon / 30.0) % 12  # ✅ Usa int() estável p/ cusp
         degree = math.fmod(lon, 30.0)    # ✅ Usa fmod para evitar erro float
