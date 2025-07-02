@@ -14,7 +14,7 @@ from app.models import User, TestSession, GuruQuestion
 from app.services.perfil_service import (
     generate_report_via_ai as generate_skyai_report_via_ai
 )
-from app.services.astrology_service import get_astrological_data
+from app.services.astrology_service import get_astrological_signs
 from app.services.numerology_service import get_numerology
 
 # (opcional) import OpenAI somente dentro das funções que usam
@@ -167,7 +167,7 @@ def gerar_relatorio():
 
     # Ainda não terminou
     if not sessao.ai_result:
-        flash("Report generation is still in progress.", "warning")
+        flash("Report generation is still in progress. Please try again shortly.", "warning")
         return redirect(url_for("user.processando_relatorio", sessao_id=sessao.id))
 
     # ─── Converte/normaliza o campo ai_result ───────────────────────────
@@ -275,7 +275,7 @@ def relatorio_pdf():
         return redirect(url_for("user.preencher_dados"))
 
     if not sessao.ai_result:
-        flash("Report is still being generated.", "warning")
+        flash("Report is still being generated. Try again soon.", "warning")
         return redirect(url_for("user.processando_relatorio", sessao_id=sessao.id))
 
     # constrói o dicionário e renderiza o HTML exatamente como antes ...
@@ -383,17 +383,17 @@ def compatibility():
         return redirect(url_for('auth_views.login_view'))
 
     if request.method == 'POST':
-        name_1 = request.form.get("name_1", "").strip()
-        birth_1 = request.form.get("birth_1", "").strip()
-        birth_time_1 = request.form.get("birth_time_1", "").strip()
-        birth_city_1 = request.form.get("birth_city_1", "").strip()
-        birth_country_1 = request.form.get("birth_country_1", "").strip()
+        name_1 = request.form.get("name_1")
+        birth_1 = request.form.get("birth_1")
+        birth_time_1 = request.form.get("birth_time_1")
+        birth_city_1 = request.form.get("birth_city_1")
+        birth_country_1 = request.form.get("birth_country_1")
 
-        name_2 = request.form.get("name_2", "").strip()
-        birth_2 = request.form.get("birth_2", "").strip()
-        birth_time_2 = request.form.get("birth_time_2", "").strip()
-        birth_city_2 = request.form.get("birth_city_2", "").strip()
-        birth_country_2 = request.form.get("birth_country_2", "").strip()
+        name_2 = request.form.get("name_2")
+        birth_2 = request.form.get("birth_2")
+        birth_time_2 = request.form.get("birth_time_2")
+        birth_city_2 = request.form.get("birth_city_2")
+        birth_country_2 = request.form.get("birth_country_2")
 
         if not all([
             name_1, birth_1, birth_time_1, birth_city_1, birth_country_1,
@@ -403,110 +403,68 @@ def compatibility():
             return render_template("compatibility.html")
 
         try:
-            # 🔹 Importa serviços reais para garantir precisão
-            from app.services.astrology_service import get_astrological_data
+            # 🔹 IMPORTA OS SERVIÇOS REAIS
+            from app.services.astrology_service import get_astrological_signs
             from app.services.numerology_service import get_numerology
 
-            # 🔹 Cálculo real — Pessoa 1
-            astro_1 = get_astrological_data(birth_1, birth_time_1, birth_city_1, birth_country_1)
+            # 🔹 CALCULA PARA PESSOA 1
+            astro_1 = get_astrological_signs(birth_1, birth_time_1, birth_city_1, birth_country_1)
             num_1 = get_numerology(name_1, birth_1)
 
-            # 🔹 Cálculo real — Pessoa 2
-            astro_2 = get_astrological_data(birth_2, birth_time_2, birth_city_2, birth_country_2)
+            # 🔹 CALCULA PARA PESSOA 2
+            astro_2 = get_astrological_signs(birth_2, birth_time_2, birth_city_2, birth_country_2)
             num_2 = get_numerology(name_2, birth_2)
 
-            # 🔹 Prompt blindado com dados reais
+            # 🔹 MONTA O PROMPT COM OS DADOS CONCRETOS
             from openai import OpenAI
             api_key = os.getenv("OPENAI_API_KEY")
             client = OpenAI(api_key=api_key)
 
             prompt = f"""
-You are **Guru SkyAI**, a world-class expert in relationship compatibility, modern astrology, and Pythagorean numerology.
+You are Guru SkyAI, an expert in compatibility, astrology, and numerology.
 
-Your mission is to produce a **premium, clear, deeply insightful** compatibility report for two people.  
-Your analysis must feel like it was crafted by a high-level human advisor: **logical, honest, practical and free of generic clichés**.  
-No poetic fluff, no vague metaphors, no spiritual mysticism — just concrete, human language and empathetic but **realistic** insights.
+Your mission is to generate a practical and clear compatibility analysis between two people.
+The tone must be empathetic, respectful and easy to understand. Avoid poetic language, metaphors or overly spiritual expressions.
+Focus on real insights that help people make conscious relationship decisions.
 
----
+Based on the following real calculated information:
 
-## 🌍 REAL DATA (DO NOT CHANGE, DO NOT GUESS)
+👤 Person 1:
+- Full Name: {name_1}
+- Sun: {astro_1['positions']['SUN']['sign']}
+- Moon: {astro_1['positions']['MOON']['sign']}
+- Ascendant: {astro_1['positions']['ASC']['sign']}
+- Life Path: {num_1['life_path']}
+- Soul Urge: {num_1['soul_urge']}
+- Expression: {num_1['expression']}
 
-👤 **Person 1**:
-- Full Name: {{name_1}}
-- Sun Sign: {{sun_1}}  _(from Swiss Ephemeris)_
-- Moon Sign: {{moon_1}}
-- Ascendant: {{asc_1}}
-- Life Path: {{life_1}}  _(Pythagorean)_
-- Soul Urge: {{soul_1}}
-- Expression: {{expression_1}}
+👤 Person 2:
+- Full Name: {name_2}
+- Sun: {astro_2['positions']['SUN']['sign']}
+- Moon: {astro_2['positions']['MOON']['sign']}
+- Ascendant: {astro_2['positions']['ASC']['sign']}
+- Life Path: {num_2['life_path']}
+- Soul Urge: {num_2['soul_urge']}
+- Expression: {num_2['expression']}
 
-👤 **Person 2**:
-- Full Name: {{name_2}}
-- Sun Sign: {{sun_2}}
-- Moon Sign: {{moon_2}}
-- Ascendant: {{asc_2}}
-- Life Path: {{life_2}}
-- Soul Urge: {{soul_2}}
-- Expression: {{expression_2}}
+Your analysis must include:
 
-> ⚠️ These facts are **FINAL**. You must NOT recalculate or deduce new signs or numbers. You must not reinterpret them. Use exactly what is provided.
+1. A summary of their compatibility level (e.g. High, Medium, Low).
+2. Key alignments or conflicts between their Sun, Moon, and Ascendant signs.
+3. Numerology compatibility: Life Path, Soul Urge, and Expression numbers.
+4. Emotional dynamics: attraction, communication style, potential for emotional growth.
+5. Practical advice: what to watch out for, strengths to build on, and how to grow together or why to reconsider.
 
----
-
-## 🪐 **STRUCTURE**
-
-Your premium report must include **5 clear, numbered sections**:
-
-1️⃣ **Compatibility Level**  
-Rate the overall compatibility as **High, Medium, or Low**, with 1–2 sentences explaining why.
-
-2️⃣ **Astrological Alignment**  
-Analyze the dynamics between their **Sun, Moon, and Ascendant signs**:
-   - What works naturally?
-   - What conflicts may appear?
-   - What is unique about this pair?
-
-3️⃣ **Numerology Match**  
-Discuss how their **Life Path, Soul Urge, and Expression numbers** interact:
-   - Do the numbers reinforce each other or create tension?
-   - How do their values and life goals align?
-
-4️⃣ **Emotional Dynamics**  
-Describe the emotional and communication style:
-   - How do they express affection?
-   - Where can misunderstandings arise?
-   - What emotional needs must be respected?
-
-5️⃣ **Practical Advice & Final Reflection**  
-Offer concrete, realistic advice:
-   - What should each person be mindful of?
-   - What are the relationship’s greatest strengths?
-   - When might they need to reconsider or adjust course?
-
----
-
-## 📝 **TONE & STYLE**
-
-- Use clear, warm, respectful language — never cold or robotic.
-- Speak as if you were a trusted human advisor with real-life experience.
-- Avoid generic phrases like “you may feel” — be direct and credible.
-- Keep the text easy to read, with short paragraphs and lists where helpful.
-- No process explanations. Deliver the final analysis only.
-
----
-
-## 🚫 **ABSOLUTE RULES**
-
-✅ Only use the provided signs and numbers.  
-✅ Do not recalculate.  
-✅ Do not add or hallucinate extra birth details.  
-✅ No mysticism, no poetic fluff.  
-✅ Always close with a short, encouraging final insight.
-
+⚠️ Rules:
+- No mysticism, no metaphors.
+- Use clear, actionable language.
+- Base your analysis strictly on the provided calculated signs and numbers.
+- Do not recalculate or guess these numbers.
+- Do not explain your process. Just return the final interpretation directly.
 """
 
             response = client.chat.completions.create(
-                model="gpt-4",
+                model="gpt-4o-mini",
                 messages=[
                     {"role": "system", "content": "You are Guru SkyAI, master of compatibility."},
                     {"role": "user", "content": prompt}
@@ -515,7 +473,9 @@ Offer concrete, realistic advice:
                 max_tokens=1300
             )
 
+            # 🔹 Garante que os nomes reais substituem quaisquer placeholders
             result_text = response.choices[0].message.content.strip()
+            result_text = result_text.replace("{name_1}", name_1).replace("{name_2}", name_2)
 
             return render_template(
                 "compatibility_result.html",
@@ -582,7 +542,7 @@ User CONTEXT:
 
 RULES:
 • Be clear, practical and direct.
-• Reference only the info above (do not create data).
+• Reference only the info above (do not invent data).
 • Conclude with a concrete recommendation.
 """
 
