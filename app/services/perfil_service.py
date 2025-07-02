@@ -20,7 +20,6 @@ def generate_skyai_prompt(user_data: dict) -> str:
     birth_city     = user_data.get("birth_city", "")
     birth_country  = user_data.get("birth_country", "")
 
-    # ── 1. Data de nascimento em ISO e formato de exibição ───────────────────────
     try:
         birth_date_obj = datetime.strptime(birth_date_raw, "%Y-%m-%d").date()
     except ValueError:
@@ -29,7 +28,6 @@ def generate_skyai_prompt(user_data: dict) -> str:
     birth_date_iso = birth_date_obj.isoformat()
     display_date   = birth_date_obj.strftime("%m/%d/%Y")
 
-    # ── 2. Astrologia – captura robusta de exceções ──────────────────────────────
     try:
         astro = get_astrological_data(
             birth_date_iso,
@@ -45,11 +43,6 @@ def generate_skyai_prompt(user_data: dict) -> str:
             "Falha ao calcular signos astrológicos; verifique logs."
         ) from e
 
-    if astro.get("error"):
-        current_app.logger.error(f"[Astrology ERROR] {astro.get('error')}")
-        raise RuntimeError("Falha ao calcular signos astrológicos; verifique logs.")
-
-    # ── 3. Signos principais ─────────────────────────────────────────────────────
     positions = astro.get("positions", {})
 
     def fmt_sign(body_key: str, default="None") -> str:
@@ -60,13 +53,11 @@ def generate_skyai_prompt(user_data: dict) -> str:
     moon_sign = fmt_sign("MOON")
     asc_sign  = fmt_sign("ASC")
 
-    # ── 4. Numerologia ───────────────────────────────────────────────────────────
     nume = get_numerology(full_name, birth_date_iso)
     if nume.get("error"):
         current_app.logger.error(f"[Numerology ERROR] {nume.get('error')}")
         raise RuntimeError("Falha ao calcular numerologia; verifique logs.")
 
-    # ── 5. Aspectos astrológicos ─────────────────────────────────────────────────
     aspects = astro.get("aspects", [])
 
     def find_aspect(b1: str, b2: str) -> str:
@@ -88,7 +79,6 @@ def generate_skyai_prompt(user_data: dict) -> str:
         ]
     )
 
-    # ── 6. Prompt final para a IA ────────────────────────────────────────────────
     preamble = (
         "Use these precomputed values for all interpretations:\n"
         f"- Solar Sign: {sun_sign}\n"
@@ -105,58 +95,33 @@ def generate_skyai_prompt(user_data: dict) -> str:
     body = f"""
 You are the best expert astrologer and numerologist AI. Generate a deeply personalized, professional, and inspiring Astral and Numerological Report for {full_name}, born on {display_date} at {birth_time} in {birth_city}, {birth_country}. Ensure overall assertiveness ≥ 98% by grounding all interpretations in the precomputed values above.
 
-Include the following sections, each with its emoji-enhanced title:
-
-🌟 Full Name: {full_name}
-🗅️ Date of Birth: {display_date}
-🕰️ Time of Birth: {birth_time}
-🌍 City of Birth: {birth_city}
-🌎 Country of Birth: {birth_country}
-
-The report must include:
-
-1. 🌞 Solar Sign, 🌙 Lunar Sign, and ⬆️ Ascendant Sign interpretation (Triad of Personality).
-2. 🩹 General Astrological Overview  
-   - Major personality strengths & shadow challenges, based on key natal aspects (e.g., Sun–Moon, Moon–Ascendant, ruler transits).
-
-3. 🔢 Numerological Analysis  
-   - Life Path Number ({nume['life_path']}): life purpose themes.  
-   - Soul Urge Number ({nume['soul_urge']}): inner motivations.  
-   - Expression Number ({nume['expression']}): talents and outward expression.
-
-4. 💖 Relationship & Emotional Profile  
-   - Attachment style, compatibility patterns, Venus–Mars aspects.
-
-5. 🎯 Career & Purpose Guidance  
-   - Ideal vocations, timing windows (Saturn returns, Jupiter transits), vocational strengths.
-
-6. 🔮 12-Month Forecast  
-   - Upcoming planetary transits (e.g., Jupiter, Saturn, Uranus), major numerological cycles, concrete trend highlights.
-
-7. ✨ Practical Growth Tips  
-   - Actionable rituals, timing suggestions (lunar phases), personalized affirmations.
-
-📜 Style Requirements:  
-- Use concise, motivating, jargon-free language.  
-- Cite ephemeris degrees and numerology formula references in parentheses.  
-- Make each section feel uniquely tailored to {full_name}.  
-- ONLY deliver the final report—no meta-commentary or process explanation.
-
-🖚 OUTPUT FORMAT  
-You must return a JSON object with this structure (no markdown or explanation):
-
-{{
-  "sun_sign": "<your parsed sun_sign>",
-  "moon_sign": "<your parsed moon_sign>",
-  "ascendant": "<your parsed ascendant>",
-  "life_path": "<your parsed life_path>",
-  "soul_urge": "<your parsed soul_urge>",
-  "expression": "<your parsed expression>",
-  "texto": "<Markdown formatted full report using ## section headings.>"
+📜 Style Rules:
+- DO NOT include any markdown code blocks (no ```json).
+- Your entire response must be a single pure JSON object only, no extra commentary.
+- Format: exactly this → {{
+  "sun_sign": "...",
+  "moon_sign": "...",
+  "ascendant": "...",
+  "life_path": "...",
+  "soul_urge": "...",
+  "expression": "...",
+  "texto": "... full report ..."
 }}
+
+Sections to include inside "texto":
+1. 🌞 Solar Sign, 🌙 Lunar Sign, ⬆️ Ascendant Sign.
+2. 🩹 General Astrological Overview.
+3. 🔢 Numerological Analysis.
+4. 💖 Relationship & Emotional Profile.
+5. 🎯 Career & Purpose Guidance.
+6. 🔮 12-Month Forecast.
+7. ✨ Practical Growth Tips.
+
+Keep language clear, motivating, and actionable. Always return JSON only.
 """
 
     return f"{preamble}\n{body}"
+
 
 def generate_report_via_ai(user_data: dict) -> dict:
     try:
@@ -178,7 +143,7 @@ def generate_report_via_ai(user_data: dict) -> dict:
         response = client.chat.completions.create(
             model="gpt-4",
             messages=[
-                {"role": "system", "content": "You are SkyAI, expert in astrology and numerology."},
+                {"role": "system", "content": "You are SkyAI, expert in astrology and numerology. You must return ONLY pure JSON."},
                 {"role": "user", "content": prompt}
             ],
             temperature=0.85,
@@ -187,12 +152,12 @@ def generate_report_via_ai(user_data: dict) -> dict:
 
         raw_output = response.choices[0].message.content.strip()
 
-        # ── Novo: registrar a saída bruta da IA ───────────────────────────────────
         with open(log_path, 'a', encoding='utf-8') as f:
             f.write("--- RAW OUTPUT ---\n")
             f.write(raw_output + "\n")
             f.write("--- End RAW ---\n")
 
+        # Força limpeza de blocos de código se vier errado
         result_text = raw_output.replace("```json", "").replace("```", "").strip()
 
         try:
@@ -200,7 +165,7 @@ def generate_report_via_ai(user_data: dict) -> dict:
         except json.JSONDecodeError:
             current_app.logger.warning("[AI WARNING] Response was not JSON. Saving raw text.")
             return {
-                "erro": None,
+                "erro": "IA returned invalid JSON",
                 "texto": result_text,
                 "sun_sign": None,
                 "moon_sign": None,
@@ -233,3 +198,4 @@ def generate_report_via_ai(user_data: dict) -> dict:
             "soul_urge": None,
             "expression": None,
         }
+

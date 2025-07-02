@@ -504,6 +504,12 @@ def ask_guru():
         flash("Please enter a valid question.", "warning")
         return redirect(url_for("auth_views.dashboard"))
 
+    # ✅ NOVO: verifica limite de perguntas
+    total_questions = GuruQuestion.query.filter_by(user_id=user_id).count()
+    if total_questions >= 4:
+        flash("You have reached your question limit for Guru SkyAI. Upgrade your plan or wait for a reset.", "info")
+        return redirect(url_for("auth_views.dashboard"))
+
     # ▸ 1. pega a última sessão com resultado válido
     last_session = (TestSession.query
                     .filter_by(user_id=user_id)
