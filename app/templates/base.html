@@ -229,18 +229,22 @@
     .footer-links a:hover {
       text-decoration: underline;
     }
-
     .guru-alert {
+      position: fixed;           /* Torna o alerta fixo na tela */
+      top: 20px;                 /* Distância do topo */
+      left: 50%;                 /* Centraliza horizontalmente */
+      transform: translateX(-50%);
       max-width: 600px;
-      margin: 2rem auto;
-      background-color: #fff3cd;  /* Amarelo suave */
-      color: #856404;             /* Contraste */
+      background-color: #fff3cd; /* Amarelo suave */
+      color: #856404;            /* Contraste */
       padding: 1rem 1.5rem;
       border: 1px solid #ffeeba;
       border-radius: 8px;
       text-align: center;
       font-size: 1rem;
       line-height: 1.4;
+      z-index: 9999;             /* Fica acima de tudo */
+      box-shadow: 0 2px 6px rgba(0,0,0,0.2);
     }
   </style>
 
