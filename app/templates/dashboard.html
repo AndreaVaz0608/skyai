@@ -26,7 +26,6 @@
          class="btn-primary" style="text-align:center;flex:1 1 auto;">🔍 View My Report</a>
     </div>
 
-    <!-- 💘 Compatibilidade Amorosa (ocupa o antigo espaço de Key Insights) -->
     <div class="section-card highlight"
          style="background:rgba(255,255,255,0.04);padding:1.5rem;border-radius:12px;margin-top:1rem;">
       <h3 style="color:#ffddcc;margin-bottom:.8rem;">💘 Love Compatibility</h3>
@@ -55,6 +54,15 @@
   <!-- ▸ Formulário Guru SkyAI -------------------------------------------- -->
   <div class="section-card"
        style="background:rgba(255,255,255,0.04);padding:1.5rem;border-radius:12px;margin-top:2rem;">
+    
+    <!-- ALERTA DENTRO DO CARD -->
+    {% if limit_exceeded %}
+      <div style="background:#fff3cd;color:#856404;padding:0.75rem 1rem;border:1px solid #ffeeba;
+                  border-radius:8px;margin-bottom:1rem;text-align:center;font-size:.95rem;">
+        ⚠️ You have reached your question limit for Guru SkyAI. Upgrade your plan or wait for a reset.
+      </div>
+    {% endif %}
+
     <h3 style="color:#ffdd77;margin-bottom:1rem;">🧙‍♂️ Ask the Guru SkyAI</h3>
     <form method="post" action="{{ url_for('user.ask_guru') }}">
       <textarea name="question" placeholder="Type your question here..." required
@@ -86,14 +94,4 @@
   {% endif %}
 
 </div>
-<!-- Alerta do Guru SkyAI -->
-<div class="box-container" style="position: relative; max-width: 860px;">
-  <!-- ALERTA dentro do container -->
-  {% if limit_exceeded %}
-    <div class="guru-alert">
-      ⚠️ You have reached your question limit for Guru SkyAI.<br>
-      Upgrade your plan or wait for a reset.
-    </div>
-  {% endif %}
-
 {% endblock %}
