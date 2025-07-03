@@ -409,10 +409,27 @@ def compatibility():
 
             # 🔹 CALCULA PARA PESSOA 1
             astro_1 = get_astrological_signs(birth_1, birth_time_1, birth_city_1, birth_country_1)
+            if isinstance(astro_1, tuple):
+                # Se for tupla, transforme em dict com a estrutura esperada!
+                astro_1 = {
+                    "positions": {
+                        "SUN": {"sign": astro_1[0]},
+                        "MOON": {"sign": astro_1[1]},
+                        "ASC": {"sign": astro_1[2]}
+                    }
+                }
             num_1 = get_numerology(name_1, birth_1)
 
             # 🔹 CALCULA PARA PESSOA 2
             astro_2 = get_astrological_signs(birth_2, birth_time_2, birth_city_2, birth_country_2)
+            if isinstance(astro_2, tuple):
+                astro_2 = {
+                    "positions": {
+                        "SUN": {"sign": astro_2[0]},
+                        "MOON": {"sign": astro_2[1]},
+                        "ASC": {"sign": astro_2[2]}
+                    }
+                }
             num_2 = get_numerology(name_2, birth_2)
 
             # 🔹 MONTA O PROMPT COM OS DADOS CONCRETOS
@@ -473,9 +490,8 @@ Your analysis must include:
                 max_tokens=1300
             )
 
-            # 🔹 Garante que os nomes reais substituem quaisquer placeholders
+            # 🔹 Garante resultado limpo
             result_text = response.choices[0].message.content.strip()
-            result_text = result_text.replace("{name_1}", name_1).replace("{name_2}", name_2)
 
             return render_template(
                 "compatibility_result.html",
