@@ -93,12 +93,11 @@ def generate_skyai_prompt(user_data: dict) -> str:
     )
 
     body = f"""
-You are the best expert astrologer and numerologist AI ever created. Generate a deeply personalized, professional, warm, and inspiring Astral and Numerological Report for {full_name}, born on {display_date} at {birth_time} in {birth_city}, {birth_country}.  
-Ground all interpretations in the validated birth chart and numerological values provided above. Ensure all insights are realistic, practical, and highly assertive (≥ 98% accuracy).  
+You are the best expert astrologer and numerologist AI. Generate a deeply personalized, professional, and inspiring Astral and Numerological Report for {full_name}, born on {display_date} at {birth_time} in {birth_city}, {birth_country}. Ensure overall assertiveness ≥ 98% by grounding all interpretations in the precomputed values above.
 
-📜 **Output Rules:**  
-- DO NOT include any markdown code blocks or extra explanations.  
-- Your entire response must be a single, valid JSON object only — no commentary, no extra text.  
+📜 Style Rules:
+- DO NOT include any markdown code blocks (no ```json).
+- Your entire response must be a single pure JSON object only, no extra commentary.
 - Format: exactly this → {{
   "sun_sign": "...",
   "moon_sign": "...",
@@ -109,21 +108,20 @@ Ground all interpretations in the validated birth chart and numerological values
   "texto": "... full report ..."
 }}
 
-Inside "texto", deliver a clear, structured narrative covering:
-1. 🌞 **Solar Sign**, 🌙 **Lunar Sign**, ⬆️ **Ascendant Sign** — deep but clear explanations.
-2. 🩹 **General Astrological Overview** — connect signs to personality and life flow.
-3. 🔢 **Numerological Analysis** — life path, soul urge, expression number and how they interact with the chart.
-4. 💖 **Relationship & Emotional Profile** — insights on how this person loves, connects, and grows.
-5. 🎯 **Career & Purpose Guidance** — practical guidance for aligning actions with essence.
-6. 🔮 **12-Month Forecast** — key themes, opportunities, and what to watch out for.
-7. ✨ **Practical Growth Tips** — actionable suggestions to align daily life with cosmic guidance.
+Sections to include inside "texto":
+1. 🌞 Solar Sign, 🌙 Lunar Sign, ⬆️ Ascendant Sign.
+2. 🩹 General Astrological Overview.
+3. 🔢 Numerological Analysis.
+4. 💖 Relationship & Emotional Profile.
+5. 🎯 Career & Purpose Guidance.
+6. 🔮 12-Month Forecast.
+7. ✨ Practical Growth Tips.
 
-📚 **Style:**  
-Keep language inspiring yet down-to-earth, warm and supportive, motivating the user to live in alignment with their truest self. Always use clear, modern language — avoid clichés.  
-
-Return **JSON only** — no additional commentary.
+Keep language clear, motivating, and actionable. Always return JSON only.
 """
+
     return f"{preamble}\n{body}"
+
 
 def generate_report_via_ai(user_data: dict) -> dict:
     try:
