@@ -157,6 +157,12 @@
     <a href="{{ url_for('user.relatorio_pdf', sessao_id=sessao_id) }}" class="btn-primary" target="_blank">
       📥 Download Astral Report (PDF)
     </a>
+
+    <!-- ✅ NOVO: Gera novo mapa astral ➜ Stripe -->
+    <form action="{{ url_for('payments.create_checkout') }}" method="post" style="width: 100%;">
+      <button type="submit" class="btn-primary" style="width: 100%;">🪐 Generate New Astral Map</button>
+    </form>
+
     <a href="{{ url_for('auth_views.dashboard') }}" class="btn-primary">
       ← Back to Your Cosmic Dashboard
     </a>

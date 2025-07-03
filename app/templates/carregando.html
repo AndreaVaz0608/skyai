@@ -1,5 +1,6 @@
 {% extends "base.html" %}
 {% block title %}Processing... • SkyAI{% endblock %}
+
 {% block content %}
 
 <style>
@@ -12,6 +13,7 @@
     align-items: center;
     position: relative;
     overflow: hidden;
+    flex-direction: column;
   }
 
   video {
@@ -21,28 +23,40 @@
   }
 
   .message {
-    position: absolute;
-    top: 5%;
     width: 100%;
     text-align: center;
     color: white;
     font-size: 1.2rem;
     font-weight: 500;
     font-family: 'Poppins', sans-serif;
-    padding: 0 1rem;
+    padding: 1rem 2rem;
     z-index: 2;
+  }
+
+  .paid-message {
+    color: #4CAF50;
+    margin-bottom: 0.5rem;
+    font-weight: bold;
+    font-size: 1.1rem;
   }
 
   @media (max-width: 600px) {
     .message {
       font-size: 1rem;
-      top: 2%;
+    }
+    .paid-message {
+      font-size: 1rem;
     }
   }
 </style>
 
 <div class="video-container">
+  {% if pago %}
+    <div class="paid-message">✅ Payment confirmed! Your report is being generated.</div>
+  {% endif %}
+
   <div class="message">Aligning stars, decoding numbers... Your cosmic map is almost ready!</div>
+
   <video autoplay muted loop playsinline>
     <source src="{{ url_for('static', filename='videos/skyai_loading.mp4') }}" type="video/mp4">
     Your browser does not support the video tag.
@@ -52,7 +66,7 @@
 <script>
   setTimeout(function() {
     window.location.href = "{{ url_for('user.gerar_relatorio', sessao_id=sessao_id) }}";
-  }, 6000); // Redirect after 6 seconds
+  }, 8000); // Redirect after 8 seconds
 </script>
 
 {% endblock %}

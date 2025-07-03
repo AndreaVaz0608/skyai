@@ -27,14 +27,17 @@
     </div>
 
     <div class="section-card highlight"
-        style="background:rgba(255,255,255,0.04);padding:1.5rem;border-radius:12px;margin-top:1rem;">
+         style="background:rgba(255,255,255,0.04);padding:1.5rem;border-radius:12px;margin-top:1rem;">
       <h3 style="color:#ffddcc;margin-bottom:.8rem;">💘 Love Compatibility</h3>
       <p style="color:#ccc;margin-bottom:1rem;">
         Discover the cosmic chemistry between you and a partner. Based on birth charts and numerology.
       </p>
-      <a href="{{ url_for('user.compatibility') }}" class="btn-primary" style="width:100%;">💞 Start Compatibility Test</a>
+      <!-- 🔗 Compatibilidade ➜ Paga -->
+      <form action="{{ url_for('payments.create_checkout') }}" method="post" style="margin:0;">
+        <button type="submit" class="btn-primary" style="width:100%;">💞 Start Compatibility Test</button>
+      </form>
       <p style="color:#fcd5ce;margin-top:1.5rem;font-size:.95rem;text-align:left;">
-      ✨ This is SkyAI’s gift to you. Take your chance — it’s for a limited time!
+        ✨ This is SkyAI’s gift to you. Take your chance — it’s for a limited time!
       </p>
     </div>
   {% else %}
@@ -43,10 +46,11 @@
     </p>
   {% endif %}
 
-  <!-- ▸ Novo Mapa Astral -------------------------------------------------- -->
+  <!-- ▸ Novo Mapa Astral ➜ Paga ------------------------------------------ -->
   <div class="actions" style="display:flex;flex-wrap:wrap;gap:1rem;margin:2rem 0;">
-    <a href="{{ url_for('user.preencher_dados') }}"
-       class="btn-primary" style="text-align:center;flex:1 1 auto;">🪐 Generate New Astral Map</a>
+    <form action="{{ url_for('payments.create_checkout') }}" method="post" style="flex:1 1 auto;">
+      <button type="submit" class="btn-primary" style="width:100%;text-align:center;">🪐 Generate New Astral Map</button>
+    </form>
   </div>
 
   <!-- ▸ Métrica de Perguntas --------------------------------------------- -->
@@ -54,11 +58,10 @@
     🧙 You can still ask <strong>{{ remaining_questions }}</strong> question{{ 's' if remaining_questions != 1 else '' }} to Guru SkyAI this month.
   </div>
 
-  <!-- ▸ Formulário Guru SkyAI -------------------------------------------- -->
+  <!-- ▸ Formulário Guru SkyAI ➜ Paga ------------------------------------- -->
   <div class="section-card"
        style="background:rgba(255,255,255,0.04);padding:1.5rem;border-radius:12px;margin-top:2rem;">
     
-    <!-- ALERTA DENTRO DO CARD -->
     {% if limit_exceeded %}
       <div style="background:#fff3cd;color:#856404;padding:0.75rem 1rem;border:1px solid #ffeeba;
                   border-radius:8px;margin-bottom:1rem;text-align:center;font-size:.95rem;">
@@ -67,7 +70,7 @@
     {% endif %}
 
     <h3 style="color:#ffdd77;margin-bottom:1rem;">🧙‍♂️ Ask the Guru SkyAI</h3>
-    <form method="post" action="{{ url_for('user.ask_guru') }}">
+    <form action="{{ url_for('payments.create_checkout') }}" method="post">
       <textarea name="question" placeholder="Type your question here..." required
                 style="width:100%;height:160px;border-radius:10px;padding:1rem;font-size:1rem;
                        resize:vertical;box-sizing:border-box;margin-bottom:1rem;"></textarea>

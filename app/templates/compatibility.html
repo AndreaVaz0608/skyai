@@ -32,7 +32,8 @@
     <p style="color: #ccc;">Enter the birth and identity details for both people to receive a complete compatibility reading.</p>
   </div>
 
-  <form method="POST" action="{{ url_for('user.compatibility') }}">
+  <!-- 🔗 Agora o formulário vai para /pay/checkout -->
+  <form method="POST" action="{{ url_for('payments.create_checkout') }}">
     <!-- Person 1 -->
     <fieldset style="margin-bottom: 2.5rem;">
       <legend style="color: #ffdd77; margin-bottom: 1rem;">✨ Person 1</legend>
@@ -94,8 +95,12 @@
     </fieldset>
 
     <button type="submit" class="btn-primary" style="width: 100%; padding: 1rem; border-radius: 12px; font-size: 1.1rem;">
-      🔍 Analyze Compatibility
+      💳 Pay & Analyze Compatibility
     </button>
+
+    <p style="color:#aaa;font-size:.85rem;margin-top:.75rem;text-align:center;">
+      ⚠️ After payment and test completion, no refunds will be issued.
+    </p>
   </form>
 
   <div style="text-align: center; margin-top: 2rem;">

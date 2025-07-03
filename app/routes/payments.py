@@ -1,4 +1,3 @@
-# app/routes/payments.py
 import os
 import stripe
 from flask import (
@@ -7,37 +6,45 @@ from flask import (
 )
 
 # ────────────────────────────────────────────────────────────
-# Config Stripe
+# Configuração da chave secreta Stripe
 # ────────────────────────────────────────────────────────────
 stripe.api_key = os.getenv("STRIPE_SECRET_KEY")
 
+# Cria blueprint de pagamentos
 payments_bp = Blueprint("payments", __name__, url_prefix="/pay")
 
 # ────────────────────────────────────────────────────────────
-# Rota: cria sessão de checkout e redireciona o usuário
+# Rota: Cria sessão de checkout Stripe e redireciona
 # ────────────────────────────────────────────────────────────
 @payments_bp.route("/checkout", methods=["POST"])
 def create_checkout():
     if "user_id" not in session:
-        return jsonify({"error": "not authenticated"}), 401
+        return jsonify({"error": "Not authenticated"}), 401
 
     try:
+        # Cria sessão de pagamento única
         checkout = stripe.checkout.Session.create(
             mode="payment",
             payment_method_types=["card"],
-            customer_email=session.get("user_email"),  # opcional, se você salvar isso na sessão
-            line_items=[{
-                "price": os.getenv("STRIPE_PRICE_ID"),
-                "quantity": 1,
-            }],
-            success_url=url_for("payments.thank_you", _external=True)
-                        + "?session_id={CHECKOUT_SESSION_ID}",
-            cancel_url=url_for("auth_views.dashboard", _external=True),
-            metadata={"user_id": session["user_id"]},
+            customer_email=session.get("user_email"),  # se tiver na sessão
+            line_items=[
+                {
+                    "price": os.getenv("STRIPE_PRICE_ID"),  # definido no ambiente
+                    "quantity": 1
+                }
+            ],
+            # ✅ Após pagamento bem-sucedido, envia para /processando-relatorio
+            success_url=url_for("user.processando_relatorio", _external=True)
+                        + "?paid=true&session_id={CHECKOUT_SESSION_ID}",
+            cancel_url=url_for("user.home", _external=True),
+            metadata={
+                "user_id": session["user_id"]
+            }
         )
 
-        # Em apps SPA você poderia devolver JSON.
-        # Aqui redirecionamos direto para a página segura do Stripe.
+        current_app.logger.info(f"[STRIPE] Created Checkout Session: {checkout.id}")
+
+        # Redireciona para URL seguro do Stripe
         return redirect(checkout.url)
 
     except Exception as e:
@@ -45,16 +52,9 @@ def create_checkout():
         return jsonify({"error": "stripe"}), 500
 
 # ────────────────────────────────────────────────────────────
-# Rota: tela de “obrigado” após pagamento
+# Rota: Tela de "Obrigado" (não usada, só fallback opcional)
 # ────────────────────────────────────────────────────────────
 @payments_bp.route("/thank-you")
 def thank_you():
-    session_id = request.args.get("session_id")
-    if not session_id:
-        return redirect(url_for("auth_views.dashboard"))
-
-    # (Opcional) confirmar pagamento via Stripe:
-    # checkout = stripe.checkout.Session.retrieve(session_id)
-    # if checkout.payment_status != "paid": ...
-
-    return render_template("thank_you.html")
+    # Fallback caso precise usar
+    return redirect(url_for("user.home"))

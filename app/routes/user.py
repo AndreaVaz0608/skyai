@@ -81,17 +81,36 @@ def preencher_dados():
     return render_template('user_data.html')
 
 # 🔹 Página de carregamento enquanto gera o relatório
+import threading
+
 @user_bp.route('/processando-relatorio')
 def processando_relatorio():
     if 'user_id' not in session:
         flash("Please log in to view your report.", "error")
         return redirect(url_for('auth_views.login_view'))
 
+    # ID da sessão local (do TestSession) se estiver usando
     sessao_id = request.args.get('sessao_id')
 
-    threading.Thread(target=gerar_relatorio_background, args=(current_app._get_current_object(), sessao_id)).start()
+    # Opcional: ID da sessão Stripe, se quiser salvar
+    stripe_session_id = request.args.get('session_id')
 
-    return render_template("carregando.html", sessao_id=sessao_id)
+    # Flag para mostrar mensagem de confirmação de pagamento
+    pago = request.args.get('paid') == 'true'
+
+    # 🔹 Dispara geração do relatório em background
+    if sessao_id:
+        threading.Thread(
+            target=gerar_relatorio_background,
+            args=(current_app._get_current_object(), sessao_id)
+        ).start()
+
+    return render_template(
+        "carregando.html",
+        sessao_id=sessao_id,
+        stripe_session_id=stripe_session_id,
+        pago=pago
+    )
 
 # 🔹 Função de geração do relatório em background
 def gerar_relatorio_background(app, sessao_id):
@@ -513,20 +532,24 @@ def ask_guru():
         flash("Please log in to ask Guru SkyAI.", "error")
         return redirect(url_for("auth_views.login_view"))
 
-    user_id  = session["user_id"]
+    user_id = session["user_id"]
     question = request.form.get("question", "").strip()
 
     if len(question) < 5:
         flash("Please enter a valid question.", "warning")
         return redirect(url_for("auth_views.dashboard"))
 
-    # ✅ NOVO: verifica limite de perguntas
+    # ✅ Opcional: verifique se o pagamento foi feito
+    # Você pode usar session flag se quiser
+    # if not session.get("has_paid_guru"):
+    #     flash("Please complete payment before asking the Guru.", "error")
+    #     return redirect(url_for("payments.create_checkout"))
+
     total_questions = GuruQuestion.query.filter_by(user_id=user_id).count()
     if total_questions >= 4:
         flash("You have reached your question limit for Guru SkyAI. Upgrade your plan or wait for a reset.", "info")
         return redirect(url_for("auth_views.dashboard"))
 
-    # ▸ 1. pega a última sessão com resultado válido
     last_session = (TestSession.query
                     .filter_by(user_id=user_id)
                     .filter(TestSession.ai_result.isnot(None))
@@ -537,16 +560,14 @@ def ask_guru():
         flash("Generate an astral map first so the Guru can give you a personalised answer.", "info")
         return redirect(url_for("user.preencher_dados"))
 
-    # ▸ 2. extrai dados essenciais
     data = json.loads(last_session.ai_result) if isinstance(last_session.ai_result, str) else last_session.ai_result
-    sun  = data.get("sun_sign",   "unknown")
-    moon = data.get("moon_sign",  "unknown")
-    asc  = data.get("ascendant",  "unknown")
-    life = data.get("life_path",  "unknown")
-    soul = data.get("soul_urge",  "unknown")
+    sun = data.get("sun_sign", "unknown")
+    moon = data.get("moon_sign", "unknown")
+    asc = data.get("ascendant", "unknown")
+    life = data.get("life_path", "unknown")
+    soul = data.get("soul_urge", "unknown")
     expr = data.get("expression", "unknown")
 
-    # ▸ 3. monta prompt com contexto
     prompt = f"""
 You are Guru SkyAI, an objective advisor who uses the client's own natal chart
 and numerology to give specific guidance – no mysticism or metaphors.
@@ -584,7 +605,6 @@ RULES:
 
         answer = response.choices[0].message.content.strip()
 
-        # ▸ 4. salvar pergunta + resposta
         new_q = GuruQuestion(user_id=user_id, question=question, answer=answer)
         db.session.add(new_q)
         db.session.commit()
