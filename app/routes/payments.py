@@ -15,8 +15,9 @@ payments_bp = Blueprint("payments", __name__, url_prefix="/pay")
 
 # ────────────────────────────────────────────────────────────
 # Rota: Cria sessão de checkout Stripe e redireciona
+# ✅ Aceita GET e POST para funcionar com redirect do preencher_dados
 # ────────────────────────────────────────────────────────────
-@payments_bp.route("/checkout", methods=["POST"])
+@payments_bp.route("/checkout", methods=["GET", "POST"])
 def create_checkout():
     if "user_id" not in session:
         return jsonify({"error": "Not authenticated"}), 401
@@ -26,14 +27,14 @@ def create_checkout():
         checkout = stripe.checkout.Session.create(
             mode="payment",
             payment_method_types=["card"],
-            customer_email=session.get("user_email"),  # se tiver na sessão
+            customer_email=session.get("user_email"),  # opcional
             line_items=[
                 {
-                    "price": os.getenv("STRIPE_PRICE_ID"),  # definido no ambiente
+                    "price": os.getenv("STRIPE_PRICE_ID"),
                     "quantity": 1
                 }
             ],
-            # ✅ Após pagamento bem-sucedido, envia para /processando-relatorio
+            # Após sucesso, envia para processando_relatorio
             success_url=url_for("user.processando_relatorio", _external=True)
                         + "?paid=true&session_id={CHECKOUT_SESSION_ID}",
             cancel_url=url_for("user.home", _external=True),
@@ -56,5 +57,4 @@ def create_checkout():
 # ────────────────────────────────────────────────────────────
 @payments_bp.route("/thank-you")
 def thank_you():
-    # Fallback caso precise usar
     return redirect(url_for("user.home"))
