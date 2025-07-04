@@ -51,32 +51,19 @@ def preencher_dados():
             flash(f"Please complete the following fields: {', '.join(missing_fields)}.", "error")
             return render_template("user_data.html")
 
-        try:
-            birth_date = datetime.strptime(birth_date_str, "%Y-%m-%d").date()
-        except ValueError:
-            flash("Invalid date format. Please use the date picker.", "error")
-            return render_template("user_data.html")
+        # Guarda dados na sessão para recuperar depois do pagamento
+        session['pending_data'] = {
+            'user_id': user_id,
+            'full_name': full_name,
+            'birth_date': birth_date_str,
+            'birth_time': birth_time,
+            'birth_city': birth_city,
+            'birth_country': birth_country
+        }
+        session.modified = True
 
-        try:
-            test_session = TestSession(
-                user_id=user_id,
-                full_name=full_name,
-                birth_date=birth_date,
-                birth_time=birth_time,
-                birth_city=birth_city,
-                birth_country=birth_country
-            )
-            db.session.add(test_session)
-            db.session.commit()
-            session.modified = True
-
-            return redirect(url_for('user.processando_relatorio', sessao_id=test_session.id))
-
-        except Exception as e:
-            current_app.logger.error(f"[USER DATA ERROR] Failed to save test session: {e}")
-            db.session.rollback()
-            flash("Something went wrong while saving your data. Please try again.", "danger")
-            return render_template("user_data.html")
+        # Redireciona para Stripe Checkout
+        return redirect(url_for('payments.create_checkout'))
 
     return render_template('user_data.html')
 

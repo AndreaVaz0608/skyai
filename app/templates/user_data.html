@@ -3,7 +3,6 @@
 
 {% block content %}
 <style>
-  /* Harmonizar campos date e time com os demais inputs */
   input[type="date"],
   input[type="time"] {
     background-color: #e6f0ff;
@@ -34,6 +33,31 @@
   .form-group {
     margin-bottom: 1.5rem;
   }
+
+  .btn-primary {
+    display: block;
+    width: 100%;
+    padding: 1rem;
+    background-color: #fce495;
+    color: #000;
+    border: none;
+    border-radius: 10px;
+    font-weight: bold;
+    font-size: 1.1rem;
+    cursor: pointer;
+    transition: background-color 0.2s ease;
+  }
+
+  .btn-primary:hover {
+    background-color: #f9da66;
+  }
+
+  .refund-note {
+    color: #aaa;
+    font-size: 0.85rem;
+    margin-top: 0.75rem;
+    text-align: center;
+  }
 </style>
 
 <div class="box-container" style="max-width: 520px; margin: 0 auto;">
@@ -50,7 +74,8 @@
     {% endif %}
   {% endwith %}
 
-  <form method="POST">
+  <!-- ✅ O form envia para /preencher-dados ➜ Python salva session ➜ redireciona para Stripe -->
+  <form method="POST" action="{{ url_for('user.preencher_dados') }}">
     <div class="form-group">
       <label for="full_name">Full Name</label>
       <input type="text" id="full_name" name="full_name" required />
@@ -76,7 +101,10 @@
       <input type="text" id="birth_country" name="birth_country" required />
     </div>
 
-    <button type="submit">Save and Continue</button>
+    <button type="submit" class="btn-primary">💳 Save and Continue</button>
+    <p class="refund-note">
+      ⚠️ After payment and test completion, no refunds will be issued.
+    </p>
   </form>
 
   <div class="footer-links" style="margin-top: 2rem; text-align: center;">
