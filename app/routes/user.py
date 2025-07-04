@@ -32,14 +32,14 @@ def preencher_dados():
     if request.method == 'POST':
         user_id = session['user_id']
 
-        # Captura e normaliza campos
+        # 🔍 Captura e normaliza campos
         full_name = request.form.get('full_name', '').strip()
         birth_date_str = request.form.get('birth_date', '').strip()
         birth_time = request.form.get('birth_time', '').strip()
         birth_city = request.form.get('birth_city', '').strip()
         birth_country = request.form.get('birth_country', '').strip()
 
-        # Validação
+        # ✅ Validação básica
         missing_fields = []
         if not full_name: missing_fields.append("Full name")
         if not birth_date_str: missing_fields.append("Birth date")
@@ -51,7 +51,7 @@ def preencher_dados():
             flash(f"Please complete the following fields: {', '.join(missing_fields)}.", "error")
             return render_template("user_data.html")
 
-        # Guarda dados na sessão para recuperar depois do pagamento
+        # 💾 Guarda dados na sessão para uso pós-pagamento
         session['pending_data'] = {
             'user_id': user_id,
             'full_name': full_name,
@@ -62,9 +62,12 @@ def preencher_dados():
         }
         session.modified = True
 
-        # Redireciona para Stripe Checkout
+        current_app.logger.info(f"[PRENCHER_DADOS] User {user_id} data saved to session. Redirecting to Stripe...")
+
+        # 🔗 Redireciona para o checkout Stripe fixo
         return redirect("https://buy.stripe.com/bJefZg96w76eaLn0zj5AQ09")
 
+    # 👉 Renderiza formulário caso GET
     return render_template('user_data.html')
 
 # 🔹 Página de carregamento enquanto gera o relatório
@@ -76,28 +79,56 @@ def processando_relatorio():
         flash("Please log in to view your report.", "error")
         return redirect(url_for('auth_views.login_view'))
 
-    # ID da sessão local (do TestSession) se estiver usando
-    sessao_id = request.args.get('sessao_id')
+    user_id = session['user_id']
+    pending = session.get('pending_data')
 
-    # Opcional: ID da sessão Stripe, se quiser salvar
+    # ID da sessão Stripe para auditoria (opcional)
     stripe_session_id = request.args.get('session_id')
-
-    # Flag para mostrar mensagem de confirmação de pagamento
     pago = request.args.get('paid') == 'true'
 
-    # 🔹 Dispara geração do relatório em background
-    if sessao_id:
+    # Se não tem dados pendentes, volta ao dashboard
+    if not pending:
+        flash("Session expired or no data to process.", "warning")
+        return redirect(url_for('auth_views.dashboard'))
+
+    try:
+        # Cria a TestSession com dados salvos antes do pagamento
+        new_sessao = TestSession(
+            user_id=user_id,
+            full_name=pending['full_name'],
+            birth_date=pending['birth_date'],
+            birth_time=pending['birth_time'],
+            birth_city=pending['birth_city'],
+            birth_country=pending['birth_country']
+        )
+        db.session.add(new_sessao)
+        db.session.commit()
+
+        # Limpa pending_data para não duplicar
+        session.pop('pending_data', None)
+        session.modified = True
+
+        # Inicia background
         threading.Thread(
             target=gerar_relatorio_background,
-            args=(current_app._get_current_object(), sessao_id)
+            args=(current_app._get_current_object(), new_sessao.id)
         ).start()
 
-    return render_template(
-        "carregando.html",
-        sessao_id=sessao_id,
-        stripe_session_id=stripe_session_id,
-        pago=pago
-    )
+        current_app.logger.info(f"[PROCESSANDO] Criada TestSession {new_sessao.id} para user {user_id}.")
+
+        # Renderiza carregando.html com novo sessao_id
+        return render_template(
+            "carregando.html",
+            sessao_id=new_sessao.id,
+            stripe_session_id=stripe_session_id,
+            pago=pago
+        )
+
+    except Exception as e:
+        db.session.rollback()
+        current_app.logger.error(f"[PROCESSANDO ERROR] {e}")
+        flash("Something went wrong generating your report.", "danger")
+        return redirect(url_for('auth_views.dashboard'))
 
 # 🔹 Função de geração do relatório em background
 def gerar_relatorio_background(app, sessao_id):
