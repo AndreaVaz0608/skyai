@@ -63,7 +63,7 @@ def preencher_dados():
         session.modified = True
 
         # Redireciona para Stripe Checkout
-        return redirect(url_for('payments.create_checkout'))
+        return redirect("https://buy.stripe.com/bJefZg96w76eaLn0zj5AQ09")
 
     return render_template('user_data.html')
 
