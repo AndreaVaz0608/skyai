@@ -21,7 +21,7 @@ def enviar_email_boas_vindas(user):
 # 🔹 Email avisando que o Relatório Astral está pronto
 def enviar_email_relatorio(user, sessao_id):
     try:
-        link_relatorio = f"https://skyai.online/relatorio?sessao_id={sessao_id}"  # 🔥 Atualizar conforme URL real
+        link_relatorio = f"https://skyai.digital/relatorio?sessao_id={sessao_id}"  # 🔥 Atualizar conforme URL real
 
         msg = Message(
             subject="🌌 Your SkyAI Astrological and Numerological Report is Ready!",
@@ -43,7 +43,7 @@ def enviar_email_relatorio(user, sessao_id):
 # 🔹 Email de recuperação de senha
 def send_recovery_email(recipient_email, reset_token):
     try:
-        reset_link = f"https://skyai.online/reset-password?token={reset_token}"  # 🔥 Atualizar conforme domínio
+        reset_link = f"https://skyai.digital/reset-password?token={reset_token}"  # 🔥 Atualizar conforme domínio
 
         msg = Message(
             subject="🔒 Password Recovery Instructions • SkyAI",
