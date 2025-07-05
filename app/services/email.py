@@ -12,19 +12,22 @@ def enviar_email_boas_vindas(user):
             recipients=[user.email],
             sender=current_app.config['MAIL_DEFAULT_SENDER']
         )
+        # ⬇️ Usa template dentro de 'templates/emails/welcome.html'
         msg.html = render_template("emails/welcome.html", nome=user.name)
         mail.send(msg)
         current_app.logger.info(f"✅ Welcome email sent to {user.email}")
     except Exception as e:
         current_app.logger.error(f"❌ Error sending welcome email to {user.email}: {e}")
 
+
 # 🔹 Email avisando que o Relatório Astral está pronto
 def enviar_email_relatorio(user, sessao_id):
     try:
-        link_relatorio = f"https://skyai.digital/relatorio?sessao_id={sessao_id}"  # 🔥 Atualizar conforme URL real
+        # ✅ Garante domínio atualizado
+        link_relatorio = f"https://skyai.digital/relatorio?sessao_id={sessao_id}"
 
         msg = Message(
-            subject="🌌 Your SkyAI Astrological and Numerological Report is Ready!",
+            subject="🌌 Your SkyAI Astrological & Numerological Report is Ready!",
             recipients=[user.email],
             sender=current_app.config['MAIL_DEFAULT_SENDER']
         )
@@ -40,10 +43,11 @@ def enviar_email_relatorio(user, sessao_id):
     except Exception as e:
         current_app.logger.error(f"❌ Error sending report email to {user.email}: {e}")
 
+
 # 🔹 Email de recuperação de senha
 def send_recovery_email(recipient_email, reset_token):
     try:
-        reset_link = f"https://skyai.digital/reset-password?token={reset_token}"  # 🔥 Atualizar conforme domínio
+        reset_link = f"https://skyai.digital/reset-password?token={reset_token}"
 
         msg = Message(
             subject="🔒 Password Recovery Instructions • SkyAI",
@@ -51,14 +55,24 @@ def send_recovery_email(recipient_email, reset_token):
             sender=current_app.config['MAIL_DEFAULT_SENDER']
         )
 
+        # ✅ Usa HTML mais robusto, com charset UTF-8
         msg.html = f"""
-        <h2>Hello!</h2>
-        <p>You requested to reset your password for your SkyAI account.</p>
-        <p>Click the link below to set a new password:</p>
-        <p><a href="{reset_link}" style="color: #4A90E2; font-weight: bold;">Reset My Password</a></p>
-        <br>
-        <p>If you did not request a password reset, please ignore this message.</p>
-        <p>Thank you,<br>The SkyAI Team</p>
+        <html>
+        <body style="font-family: Arial, sans-serif; color: #333;">
+            <h2>Hello!</h2>
+            <p>You requested to reset your password for your SkyAI account.</p>
+            <p>Click the link below to set a new password:</p>
+            <p>
+                <a href="{reset_link}" style="display:inline-block; background:#4A90E2; color:#fff; 
+                padding:10px 20px; border-radius:5px; text-decoration:none;">
+                Reset My Password
+                </a>
+            </p>
+            <br>
+            <p>If you did not request a password reset, please ignore this message.</p>
+            <p>Thank you,<br>The SkyAI Team 🌌</p>
+        </body>
+        </html>
         """
 
         mail.send(msg)

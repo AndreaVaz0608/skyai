@@ -1,64 +1,35 @@
 import os
-import stripe
 from flask import (
-    Blueprint, render_template, request, jsonify,
-    session, url_for, redirect, current_app
+    Blueprint, redirect, session, jsonify, current_app
 )
 
 # ─────────────────────────────────────────────
-# Configuração da chave secreta Stripe
+# Você NÃO usa stripe.api_key aqui porque não cria session dinâmica
 # ─────────────────────────────────────────────
-stripe.api_key = os.getenv("STRIPE_SECRET_KEY")
 
-# Cria blueprint de pagamentos
 payments_bp = Blueprint("payments", __name__, url_prefix="/pay")
 
 # ─────────────────────────────────────────────
-# Cria sessão de checkout Stripe e redireciona
-# Aceita GET e POST para suportar redirect do preencher_dados
+# Redireciona para o link fixo do Stripe Checkout
 # ─────────────────────────────────────────────
 @payments_bp.route("/checkout", methods=["GET", "POST"])
 def create_checkout():
     if "user_id" not in session:
         return jsonify({"error": "Not authenticated"}), 401
 
-    try:
-        user_id = session["user_id"]
-        user_email = session.get("user_email")
+    # ⚡️ Apenas log para auditoria
+    user_id = session["user_id"]
+    current_app.logger.info(f"[PAYMENTS] Redirecting user {user_id} to Stripe fixed link")
 
-        # ⚡️ Cria sessão Stripe com metadados do user
-        checkout = stripe.checkout.Session.create(
-            mode="payment",
-            payment_method_types=["card"],
-            customer_email=user_email,  # opcional
-            line_items=[
-                {
-                    "price": os.getenv("STRIPE_PRICE_ID"),
-                    "quantity": 1
-                }
-            ],
-            # ⚡️ Após sucesso ➜ volta para rota processando_relatorio
-            success_url=url_for("user.processando_relatorio", _external=True)
-                        + "?paid=true&session_id={CHECKOUT_SESSION_ID}",
-            cancel_url=url_for("user.home", _external=True),
-            metadata={
-                "user_id": str(user_id)
-            }
-        )
+    # 🔗 Link fixo gerado no painel do Stripe
+    stripe_link = "https://buy.stripe.com/bJefZg96w76eaLn0zj5AQ09"
 
-        current_app.logger.info(f"[STRIPE] Created Checkout Session: {checkout.id}")
-
-        return redirect(checkout.url)
-
-    except Exception as e:
-        current_app.logger.error(f"[STRIPE ERROR] {e}")
-        return jsonify({"error": "stripe"}), 500
+    return redirect(stripe_link)
 
 
 # ─────────────────────────────────────────────
-# Rota fallback: tela "Obrigado"
-# (não usada, pois volta direto p/ processando)
+# Fallback: tela de obrigado (opcional)
 # ─────────────────────────────────────────────
 @payments_bp.route("/thank-you")
 def thank_you():
-    return redirect(url_for("user.home"))
+    return redirect("/")
