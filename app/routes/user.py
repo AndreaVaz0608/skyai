@@ -51,7 +51,7 @@ def preencher_dados():
             flash(f"Please complete the following fields: {', '.join(missing_fields)}.", "error")
             return render_template("user_data.html")
 
-        # 💾 Guarda dados na sessão para uso pós-pagamento
+        # 💾 Guarda dados na sessão para uso após pagamento
         session['pending_data'] = {
             'user_id': user_id,
             'full_name': full_name,
@@ -62,16 +62,15 @@ def preencher_dados():
         }
         session.modified = True
 
-        current_app.logger.info(f"[PRENCHER_DADOS] User {user_id} data saved to session. Redirecting to Stripe...")
+        current_app.logger.info(
+            f"[PRENCHER_DADOS] User {user_id} data saved to session. Redirecting to Stripe..."
+        )
 
-        # 🔗 Redireciona para o checkout Stripe fixo
+        # 🔗 Redireciona para o checkout Stripe (link fixo do produto)
         return redirect("https://buy.stripe.com/bJefZg96w76eaLn0zj5AQ09")
 
     # 👉 Renderiza formulário caso GET
     return render_template('user_data.html')
-
-# 🔹 Página de carregamento enquanto gera o relatório
-import threading
 
 @user_bp.route('/processando-relatorio')
 def processando_relatorio():
@@ -82,17 +81,17 @@ def processando_relatorio():
     user_id = session['user_id']
     pending = session.get('pending_data')
 
-    # ID da sessão Stripe para auditoria (opcional)
+    # ID da sessão Stripe (opcional, só para log/auditoria)
     stripe_session_id = request.args.get('session_id')
     pago = request.args.get('paid') == 'true'
 
-    # Se não tem dados pendentes, volta ao dashboard
+    # ✅ Se não tem dados pendentes, evita looping
     if not pending:
         flash("Session expired or no data to process.", "warning")
         return redirect(url_for('auth_views.dashboard'))
 
     try:
-        # Cria a TestSession com dados salvos antes do pagamento
+        # Cria nova TestSession usando dados da sessão
         new_sessao = TestSession(
             user_id=user_id,
             full_name=pending['full_name'],
@@ -104,19 +103,22 @@ def processando_relatorio():
         db.session.add(new_sessao)
         db.session.commit()
 
-        # Limpa pending_data para não duplicar
+        # Limpa para não duplicar se atualizar a URL
         session.pop('pending_data', None)
         session.modified = True
 
-        # Inicia background
+        # Gera relatório em background
         threading.Thread(
             target=gerar_relatorio_background,
             args=(current_app._get_current_object(), new_sessao.id)
         ).start()
 
-        current_app.logger.info(f"[PROCESSANDO] Criada TestSession {new_sessao.id} para user {user_id}.")
+        current_app.logger.info(
+            f"[PROCESSANDO] Created TestSession {new_sessao.id} for user {user_id}. "
+            f"Stripe session: {stripe_session_id}"
+        )
 
-        # Renderiza carregando.html com novo sessao_id
+        # Renderiza tela de carregamento
         return render_template(
             "carregando.html",
             sessao_id=new_sessao.id,

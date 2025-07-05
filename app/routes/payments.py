@@ -23,18 +23,17 @@ def create_checkout():
         return jsonify({"error": "Not authenticated"}), 401
 
     try:
-        # Cria sessão Stripe
         checkout = stripe.checkout.Session.create(
             mode="payment",
             payment_method_types=["card"],
-            customer_email=session.get("user_email"),  # se tiver
+            customer_email=session.get("user_email"),  # opcional
             line_items=[
                 {
                     "price": os.getenv("STRIPE_PRICE_ID"),
                     "quantity": 1
                 }
             ],
-            # 🔗 Success ➜ volta para /processando-relatorio
+            # ✅ Após sucesso ➜ volta para rota /processando-relatorio do Flask
             success_url=url_for("user.processando_relatorio", _external=True)
                         + "?paid=true&session_id={CHECKOUT_SESSION_ID}",
             cancel_url=url_for("user.home", _external=True),
@@ -45,9 +44,16 @@ def create_checkout():
 
         current_app.logger.info(f"[STRIPE] Created Checkout Session: {checkout.id}")
 
-        # Redireciona para o checkout seguro do Stripe
         return redirect(checkout.url)
 
     except Exception as e:
         current_app.logger.error(f"[STRIPE ERROR] {e}")
         return jsonify({"error": "stripe"}), 500
+
+# ─────────────────────────────────────────────
+# Rota opcional: fallback de "Obrigado"
+# (não usada, pois volta direto para processando)
+# ─────────────────────────────────────────────
+@payments_bp.route("/thank-you")
+def thank_you():
+    return redirect(url_for("user.home"))
