@@ -82,22 +82,22 @@ def processando_relatorio():
     user_id = session['user_id']
     pending = session.get('pending_data')
 
-    # ➜ Você NÃO usa stripe_session_id real porque usa link fixo
+    # 🔑 Verifica flag de retorno da Stripe
     pago = request.args.get('paid') == 'true'
 
-    # ✅ Se não tem dados pendentes, evita looping
+    # ✅ Proteção: se não tem dados pendentes ➜ evita loop
     if not pending:
         flash("Session expired or no data to process.", "warning")
         return redirect(url_for('auth_views.dashboard'))
 
     try:
-        # ✅ Só registra o pagamento se vier com ?paid=true
+        # ⚡️ Registra pagamento se ?paid=true e não existir
         if pago:
             payment_exists = Payment.query.filter_by(user_id=user_id).first()
             if not payment_exists:
                 new_payment = Payment(
                     user_id=user_id,
-                    stripe_session_id="manual-link",  # Marca que veio do link fixo
+                    stripe_session_id="manual-link",  # Link fixo, não tem session_id real
                     amount=29.90,
                     status='paid'
                 )
@@ -105,7 +105,7 @@ def processando_relatorio():
                 db.session.commit()
                 current_app.logger.info(f"[PAYMENT] ✔️ Payment registered for user {user_id}.")
 
-        # Cria nova TestSession usando dados salvos na sessão
+        # ⚡️ Cria nova TestSession com os dados salvos antes do pagamento
         new_sessao = TestSession(
             user_id=user_id,
             full_name=pending['full_name'],
@@ -117,21 +117,20 @@ def processando_relatorio():
         db.session.add(new_sessao)
         db.session.commit()
 
-        # Limpa pending_data para não duplicar
+        # ✅ Limpa dados pendentes para evitar duplicidade
         session.pop('pending_data', None)
         session.modified = True
 
-        # Gera relatório em background
+        # ⚡️ Gera relatório em background
         threading.Thread(
             target=gerar_relatorio_background,
             args=(current_app._get_current_object(), new_sessao.id)
         ).start()
 
         current_app.logger.info(
-            f"[PROCESSANDO] Created TestSession {new_sessao.id} for user {user_id}."
+            f"[PROCESSANDO] ✔️ TestSession {new_sessao.id} criada para user {user_id}."
         )
 
-        # Renderiza tela de carregamento
         return render_template(
             "carregando.html",
             sessao_id=new_sessao.id,

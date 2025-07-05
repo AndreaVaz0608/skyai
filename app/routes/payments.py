@@ -14,8 +14,8 @@ stripe.api_key = os.getenv("STRIPE_SECRET_KEY")
 payments_bp = Blueprint("payments", __name__, url_prefix="/pay")
 
 # ─────────────────────────────────────────────
-# Rota: Cria sessão de checkout Stripe e redireciona
-# Aceita GET e POST ➜ funciona com redirect do preencher_dados
+# Cria sessão de checkout Stripe e redireciona
+# Aceita GET e POST para suportar redirect do preencher_dados
 # ─────────────────────────────────────────────
 @payments_bp.route("/checkout", methods=["GET", "POST"])
 def create_checkout():
@@ -23,22 +23,26 @@ def create_checkout():
         return jsonify({"error": "Not authenticated"}), 401
 
     try:
+        user_id = session["user_id"]
+        user_email = session.get("user_email")
+
+        # ⚡️ Cria sessão Stripe com metadados do user
         checkout = stripe.checkout.Session.create(
             mode="payment",
             payment_method_types=["card"],
-            customer_email=session.get("user_email"),  # opcional
+            customer_email=user_email,  # opcional
             line_items=[
                 {
                     "price": os.getenv("STRIPE_PRICE_ID"),
                     "quantity": 1
                 }
             ],
-            # ✅ Após sucesso ➜ volta para rota /processando-relatorio do Flask
+            # ⚡️ Após sucesso ➜ volta para rota processando_relatorio
             success_url=url_for("user.processando_relatorio", _external=True)
                         + "?paid=true&session_id={CHECKOUT_SESSION_ID}",
             cancel_url=url_for("user.home", _external=True),
             metadata={
-                "user_id": session["user_id"]
+                "user_id": str(user_id)
             }
         )
 
@@ -50,9 +54,10 @@ def create_checkout():
         current_app.logger.error(f"[STRIPE ERROR] {e}")
         return jsonify({"error": "stripe"}), 500
 
+
 # ─────────────────────────────────────────────
-# Rota opcional: fallback de "Obrigado"
-# (não usada, pois volta direto para processando)
+# Rota fallback: tela "Obrigado"
+# (não usada, pois volta direto p/ processando)
 # ─────────────────────────────────────────────
 @payments_bp.route("/thank-you")
 def thank_you():
