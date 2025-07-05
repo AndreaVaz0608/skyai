@@ -16,6 +16,7 @@ from app.services.perfil_service import (
 )
 from app.services.astrology_service import get_astrological_signs
 from app.services.numerology_service import get_numerology
+from app.models import Payment
 
 # (opcional) import OpenAI somente dentro das funções que usam
 
@@ -81,8 +82,7 @@ def processando_relatorio():
     user_id = session['user_id']
     pending = session.get('pending_data')
 
-    # ID da sessão Stripe (opcional, só para log/auditoria)
-    stripe_session_id = request.args.get('session_id')
+    # ➜ Você NÃO usa stripe_session_id real porque usa link fixo
     pago = request.args.get('paid') == 'true'
 
     # ✅ Se não tem dados pendentes, evita looping
@@ -91,7 +91,21 @@ def processando_relatorio():
         return redirect(url_for('auth_views.dashboard'))
 
     try:
-        # Cria nova TestSession usando dados da sessão
+        # ✅ Só registra o pagamento se vier com ?paid=true
+        if pago:
+            payment_exists = Payment.query.filter_by(user_id=user_id).first()
+            if not payment_exists:
+                new_payment = Payment(
+                    user_id=user_id,
+                    stripe_session_id="manual-link",  # Marca que veio do link fixo
+                    amount=29.90,
+                    status='paid'
+                )
+                db.session.add(new_payment)
+                db.session.commit()
+                current_app.logger.info(f"[PAYMENT] ✔️ Payment registered for user {user_id}.")
+
+        # Cria nova TestSession usando dados salvos na sessão
         new_sessao = TestSession(
             user_id=user_id,
             full_name=pending['full_name'],
@@ -103,7 +117,7 @@ def processando_relatorio():
         db.session.add(new_sessao)
         db.session.commit()
 
-        # Limpa para não duplicar se atualizar a URL
+        # Limpa pending_data para não duplicar
         session.pop('pending_data', None)
         session.modified = True
 
@@ -114,15 +128,13 @@ def processando_relatorio():
         ).start()
 
         current_app.logger.info(
-            f"[PROCESSANDO] Created TestSession {new_sessao.id} for user {user_id}. "
-            f"Stripe session: {stripe_session_id}"
+            f"[PROCESSANDO] Created TestSession {new_sessao.id} for user {user_id}."
         )
 
         # Renderiza tela de carregamento
         return render_template(
             "carregando.html",
             sessao_id=new_sessao.id,
-            stripe_session_id=stripe_session_id,
             pago=pago
         )
 

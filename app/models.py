@@ -1,6 +1,7 @@
 from datetime import datetime
 from app.main import db
 from werkzeug.security import generate_password_hash, check_password_hash
+from decimal import Decimal
 
 class User(db.Model):
     __tablename__ = 'users'
@@ -96,3 +97,19 @@ class LoveCompatibility(db.Model):
 
     def __repr__(self):
         return f"<LoveCompatibility {self.id} – User {self.user_id}>"
+
+class Payment(db.Model):
+    __tablename__ = 'payments'
+
+    id = db.Column(db.Integer, primary_key=True)
+    user_id = db.Column(db.Integer, db.ForeignKey('users.id'), nullable=False)
+    stripe_session_id = db.Column(db.String(128), nullable=False, unique=True)
+    amount = db.Column(db.Numeric(10, 2), default=Decimal("29.90"))
+    status = db.Column(db.String(20), default="paid")  # ex: 'paid'
+    created_at = db.Column(db.DateTime, default=datetime.utcnow)
+
+    user = db.relationship('User', backref='payments')
+
+    def __repr__(self):
+        return f"<Payment {self.id} – User {self.user_id} – {self.status}>"
+    
