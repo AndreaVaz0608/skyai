@@ -1,4 +1,5 @@
 # app/main.py
+
 from flask import Flask
 from flask_sqlalchemy import SQLAlchemy
 from flask_jwt_extended import JWTManager
@@ -9,36 +10,37 @@ import logging
 import smtplib
 import os
 
-# ── Extensões globais ─────────────────────────────────────────
-db  = SQLAlchemy()
+# ── Extensões globais ──────────────────────────────
+db = SQLAlchemy()
 jwt = JWTManager()
 mail = Mail()
 
-# ── Fábrica da aplicação ─────────────────────────────────────
+# ── Fábrica da aplicação ───────────────────────────
 def create_app() -> Flask:
     app = Flask(__name__)
     app.config.from_object(Config)
 
-    # 🔎 Exibe a URI ativa do banco (útil em logs)
     print("[DB CHECK] URI ativa:", app.config['SQLALCHEMY_DATABASE_URI'])
 
     db.init_app(app)
     jwt.init_app(app)
     mail.init_app(app)
 
-    # ── Blueprints ------------------------------------------------------
+    # ── Blueprints ──────────────────────────────────
     with app.app_context():
-        from app.routes.web      import auth_views
-        from app.routes.user     import user_bp
-        from app.routes.contato  import contato_views
-        from app.routes.payments import payments_bp   # ← NOVO
+        from app.routes.web            import auth_views
+        from app.routes.user           import user_bp
+        from app.routes.contato        import contato_views
+        from app.routes.payments       import payments_bp
+        from app.routes.stripe_webhook import stripe_webhook_bp  # ✅ WEBHOOK CORRETO
 
         app.register_blueprint(auth_views)
         app.register_blueprint(user_bp)
         app.register_blueprint(contato_views)
-        app.register_blueprint(payments_bp)           # ← NOVO
+        app.register_blueprint(payments_bp)
+        app.register_blueprint(stripe_webhook_bp)               # ✅ WEBHOOK ATIVO
 
-    # ── SMTP Debug (somente em modo DEBUG) ------------------------------
+    # ── SMTP Debug (opcional) ──────────────────────
     if app.config.get("DEBUG", False):
         mail_logger = logging.getLogger("smtplib")
         mail_logger.setLevel(logging.DEBUG)
@@ -49,10 +51,10 @@ def create_app() -> Flask:
 
     return app
 
-# ── Exposto ao Gunicorn ───────────────────────────────────────
+# ── Exposto ao Gunicorn ────────────────────────────
 app = create_app()
 
-# ── Execução local para testes rápidos ------------------------
+# ── Execução local ─────────────────────────────────
 if __name__ == "__main__":
     port = int(os.environ.get("PORT", 5000))
     app.run(host="0.0.0.0", port=port, debug=True)
