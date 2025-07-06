@@ -28,17 +28,18 @@ def create_app() -> Flask:
 
     # ── Blueprints ──────────────────────────────────
     with app.app_context():
-        from app.routes.web            import auth_views
-        from app.routes.user           import user_bp
-        from app.routes.contato        import contato_views
-        from app.routes.payments       import payments_bp
-        from app.routes.stripe_webhook import stripe_webhook_bp  # ✅ WEBHOOK CORRETO
+    from app.routes.web          import auth_views
+    from app.routes.user         import user_bp
+    from app.routes.contato      import contato_views
+    from app.routes.payments     import payments_bp
+    from app.routes.stripe_webhook import stripe_webhook_bp   #  ← add
 
-        app.register_blueprint(auth_views)
-        app.register_blueprint(user_bp)
-        app.register_blueprint(contato_views)
-        app.register_blueprint(payments_bp)
-        app.register_blueprint(stripe_webhook_bp)               # ✅ WEBHOOK ATIVO
+    app.register_blueprint(auth_views)
+    app.register_blueprint(user_bp)
+    app.register_blueprint(contato_views)
+    app.register_blueprint(payments_bp)
+    app.register_blueprint(stripe_webhook_bp)                 #  ← add
+
 
     # ── SMTP Debug (opcional) ──────────────────────
     if app.config.get("DEBUG", False):
