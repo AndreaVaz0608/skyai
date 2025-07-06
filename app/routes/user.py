@@ -73,72 +73,86 @@ def preencher_dados():
     # 👉 Renderiza formulário caso GET
     return render_template('user_data.html')
 
-@user_bp.route('/processando-relatorio')
+# app/routes/user.py  –  trecho completo e já corrigido
+@user_bp.route("/processando-relatorio")
 def processando_relatorio():
-    if 'user_id' not in session:
+    # ─────────── Segurança ───────────
+    if "user_id" not in session:
         flash("Please log in to view your report.", "error")
-        return redirect(url_for('auth_views.login_view'))
+        return redirect(url_for("auth_views.login_view"))
 
-    user_id = session['user_id']
-    pending = session.get('pending_data')
+    user_id           = session["user_id"]
+    pending           = session.get("pending_data")
+    pago              = request.args.get("paid") == "true"
+    stripe_session_id = request.args.get("session_id")        # real id que vem do success_url
 
-    # 🔑 Pega flag & ID do Stripe (opcional)
-    pago = request.args.get('paid') == 'true'
-    stripe_session_id = request.args.get('session_id')
-
-    # 🚫 Evita loop se não tem dados
+    # ─────────── Proteção contra loop ───────────
     if not pending:
         flash("Session expired or no data to process.", "warning")
-        return redirect(url_for('auth_views.dashboard'))
+        return redirect(url_for("auth_views.dashboard"))
 
     try:
-        # ✅ SE está marcado como pago, confirma se webhook registrou
+        # ─────────── Confirma / registra pagamento ───────────
         if pago:
-            payment_exists = Payment.query.filter_by(user_id=user_id).first()
-            if not payment_exists:
-                current_app.logger.warning(f"[PROCESSANDO] Payment missing for user {user_id}! Webhook may have failed.")
-                flash("Payment not confirmed yet. Please wait or contact support.", "warning")
-                return redirect(url_for('auth_views.dashboard'))
+            pay_q = Payment.query
+            if stripe_session_id:
+                pay_q = pay_q.filter_by(stripe_session_id=stripe_session_id)
             else:
-                current_app.logger.info(f"[PROCESSANDO] Payment found for user {user_id}: OK.")
+                pay_q = pay_q.filter_by(user_id=user_id)
 
-        # ⚡️ Cria nova TestSession
+            payment = pay_q.first()
+
+            # ❶  Web-hook ainda não chegou? — avisa o usuário
+            if not payment:
+                current_app.logger.warning(
+                    f"[PROCESSANDO] Payment not found (user {user_id}, session {stripe_session_id})"
+                )
+                flash("Payment not confirmed yet. Please wait a few seconds and refresh.", "warning")
+                return redirect(url_for("auth_views.dashboard"))
+
+            # ❷  Já existe = tudo certo
+            current_app.logger.info(
+                f"[PROCESSANDO] Payment OK for user {user_id} (session {stripe_session_id})"
+            )
+
+        # ─────────── Cria TestSession ───────────
         new_sessao = TestSession(
-            user_id=user_id,
-            full_name=pending['full_name'],
-            birth_date=pending['birth_date'],
-            birth_time=pending['birth_time'],
-            birth_city=pending['birth_city'],
-            birth_country=pending['birth_country']
+            user_id       = user_id,
+            full_name     = pending["full_name"],
+            birth_date    = pending["birth_date"],
+            birth_time    = pending["birth_time"],
+            birth_city    = pending["birth_city"],
+            birth_country = pending["birth_country"],
         )
         db.session.add(new_sessao)
         db.session.commit()
 
-        # ✅ Limpa dados pendentes para não duplicar
-        session.pop('pending_data', None)
+        # Limpa dados pendentes
+        session.pop("pending_data", None)
         session.modified = True
 
-        # ⚡️ Gera relatório em background
+        # ─────────── Geração assíncrona ───────────
         threading.Thread(
             target=gerar_relatorio_background,
-            args=(current_app._get_current_object(), new_sessao.id)
+            args=(current_app._get_current_object(), new_sessao.id),
+            daemon=True,
         ).start()
 
         current_app.logger.info(
-            f"[PROCESSANDO] ✔️ TestSession {new_sessao.id} criada para user {user_id}."
+            f"[PROCESSANDO] ✔ TestSession {new_sessao.id} criada para user {user_id}"
         )
 
         return render_template(
             "carregando.html",
             sessao_id=new_sessao.id,
-            pago=pago
+            pago=pago,
         )
 
     except Exception as e:
         db.session.rollback()
         current_app.logger.error(f"[PROCESSANDO ERROR] {e}")
         flash("Something went wrong generating your report.", "danger")
-        return redirect(url_for('auth_views.dashboard'))
+        return redirect(url_for("auth_views.dashboard"))
 
 # 🔹 Função de geração do relatório em background
 def gerar_relatorio_background(app, sessao_id):
