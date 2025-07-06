@@ -131,7 +131,6 @@ def logout():
     return redirect(url_for('auth_views.login_view'))
 
 # 🔹 Dashboard com contagem de perguntas ao Guru
-# 🔹 Dashboard com contagem de perguntas ao Guru
 @auth_views.route('/dashboard')
 def dashboard():
     if 'user_id' not in session:
@@ -141,38 +140,43 @@ def dashboard():
     user_id = session['user_id']
     user = User.query.get(user_id)
 
-    # ▶ relatórios recentes (para o card “Your last reports”)
-    sessoes = (TestSession.query
-               .filter_by(user_id=user_id)
-               .order_by(TestSession.created_at.desc())
-               .limit(6)
-               .all())
-    ultima_sessao = sessoes[0] if sessoes else None
-    total         = len(sessoes)
+    # 📌 Verifica pagamento confirmado
+    has_paid = Payment.query.filter_by(user_id=user_id, status='paid').first() is not None
 
-    # 🔮 contagem de perguntas do Guru neste mês
-    start_of_month = datetime.utcnow().replace(day=1, hour=0, minute=0, second=0, microsecond=0)
-    used_questions = db.session.query(func.count()).select_from(GuruQuestion).filter(
-        GuruQuestion.user_id == user_id,
-        GuruQuestion.created_at >= start_of_month
-    ).scalar()
+    # 📌 Verifica se já gerou relatório
+    has_report = TestSession.query.filter_by(user_id=user_id).count() > 0
+
+    # 📌 Verifica se já fez compatibilidade amorosa
+    has_compat = LoveCompatibility.query.filter_by(user_id=user_id).count() > 0
+
+    # 📌 Verifica quantas perguntas ao Guru já fez
+    used_questions = GuruQuestion.query.filter_by(user_id=user_id).count()
     remaining_questions = max(0, 4 - used_questions)
 
-    # 🔮 últimas respostas do Guru
-    guru_answers = (GuruQuestion.query
-                    .filter_by(user_id=user_id)
-                    .order_by(GuruQuestion.created_at.desc())
-                    .limit(3)
-                    .all())
+    # Últimos relatórios & respostas
+    sessoes = (
+        TestSession.query.filter_by(user_id=user_id)
+        .order_by(TestSession.created_at.desc()).limit(6).all()
+    )
+    ultima_sessao = sessoes[0] if sessoes else None
+    total = len(sessoes)
+
+    guru_answers = (
+        GuruQuestion.query.filter_by(user_id=user_id)
+        .order_by(GuruQuestion.created_at.desc()).limit(3).all()
+    )
 
     return render_template(
         "dashboard.html",
         nome=user.name,
         email=user.email,
-        sessoes=sessoes,
-        total=total,
-        ultima_sessao=ultima_sessao,
+        has_paid=has_paid,
+        has_report=has_report,
+        has_compat=has_compat,
         remaining_questions=remaining_questions,
+        sessoes=sessoes,
+        ultima_sessao=ultima_sessao,
+        total=total,
         guru_answers=guru_answers,
     )
 

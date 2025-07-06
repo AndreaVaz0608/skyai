@@ -19,76 +19,89 @@
     <p><strong>Email:</strong> {{ email }}</p>
   </div>
 
-  <!-- ▸ Relatórios & Compatibilidade ------------------------------------- -->
-  {% if total > 0 and ultima_sessao %}
-    <div class="actions" style="display:flex;flex-wrap:wrap;gap:1rem;margin-bottom:2rem;">
-      <a href="{{ url_for('user.gerar_relatorio', sessao_id=ultima_sessao.id) }}"
-         class="btn-primary" style="text-align:center;flex:1 1 auto;">🔍 View My Report</a>
+  <!-- ▸ Status de Pagamento ----------------------------------------------- -->
+  {% if not has_paid %}
+    <div class="section-card"
+         style="background:rgba(255,0,0,0.1);padding:1.5rem;border-radius:12px;margin-top:1rem;color:#fdd;">
+      <p>⚠️ You need to pay to unlock your Astral Map, Compatibility and Guru questions.</p>
+      <a href="https://buy.stripe.com/bJefZg96w76eaLn0zj5AQ09" class="btn-primary">💳 Pay Now</a>
     </div>
+  {% endif %}
+
+  <!-- ▸ Relatórios & Compatibilidade -------------------------------------- -->
+  {% if has_paid %}
+    {% if not has_report %}
+      <div class="actions" style="margin:2rem 0;">
+        <a href="{{ url_for('user.preencher_dados') }}" class="btn-primary" style="width:100%;">🪐 Generate Your Astral Map</a>
+      </div>
+    {% else %}
+      <div class="actions" style="display:flex;flex-wrap:wrap;gap:1rem;margin-bottom:2rem;">
+        <a href="{{ url_for('user.gerar_relatorio', sessao_id=ultima_sessao.id) }}"
+           class="btn-primary" style="text-align:center;flex:1 1 auto;">🔍 View My Report</a>
+      </div>
+    {% endif %}
 
     <div class="section-card highlight"
          style="background:rgba(255,255,255,0.04);padding:1.5rem;border-radius:12px;margin-top:1rem;">
       <h3 style="color:#ffddcc;margin-bottom:.8rem;">💘 Love Compatibility</h3>
       <p style="color:#ccc;margin-bottom:1rem;">
-        Discover the cosmic chemistry between you and a partner. Based on birth charts and numerology.
+        Discover the cosmic chemistry between you and a partner.
       </p>
-      <!-- 🔗 Compatibilidade ➜ Paga -->
-      <a href="https://buy.stripe.com/bJefZg96w76eaLn0zj5AQ09" class="btn-primary" style="width:100%;">💞 Start Compatibility Test</a>
-      <p style="color:#fcd5ce;margin-top:1.5rem;font-size:.95rem;text-align:left;">
-        ✨ This is SkyAI’s gift to you. Take your chance — it’s for a limited time!
-      </p>
+      {% if not has_compat %}
+        <a href="{{ url_for('user.compatibility_form') }}" class="btn-primary" style="width:100%;">💞 Start Compatibility Test</a>
+      {% else %}
+        <p style="color:#fcd5ce;">✅ You have already used your Love Compatibility test.</p>
+      {% endif %}
     </div>
-  {% else %}
-    <p style="margin-top:1.5rem;font-style:italic;color:#ccc;">
-      No astral reports generated yet. Let's map your stars soon!
-    </p>
-  {% endif %}
 
-  <!-- ▸ Novo Mapa Astral ➜ Paga ------------------------------------------ -->
-  <div class="actions" style="display:flex;flex-wrap:wrap;gap:1rem;margin:2rem 0;">
-    <a href="https://buy.stripe.com/bJefZg96w76eaLn0zj5AQ09"
-       class="btn-primary" style="width:100%;text-align:center;flex:1 1 auto;">🪐 Generate New Astral Map</a>
-  </div>
+    <!-- ▸ Perguntas ao Guru -------------------------------------------- -->
+    <div class="section-card"
+         style="background:rgba(255,255,255,0.04);padding:1.5rem;border-radius:12px;margin-top:2rem;">
 
-  <!-- ▸ Métrica de Perguntas --------------------------------------------- -->
-  <div style="font-size:1.05rem;margin-bottom:2rem;color:#eee;">
-    🧙 You can still ask <strong>{{ remaining_questions }}</strong> question{{ 's' if remaining_questions != 1 else '' }} to Guru SkyAI this month.
-  </div>
+      <h3 style="color:#ffdd77;margin-bottom:1rem;">🧙‍♂️ Ask the Guru SkyAI</h3>
 
-  <!-- ▸ Formulário Guru SkyAI ➜ Paga ------------------------------------- -->
-  <div class="section-card"
-       style="background:rgba(255,255,255,0.04);padding:1.5rem;border-radius:12px;margin-top:2rem;">
-    
-    {% if limit_exceeded %}
-      <div style="background:#fff3cd;color:#856404;padding:0.75rem 1rem;border:1px solid #ffeeba;
-                  border-radius:8px;margin-bottom:1rem;text-align:center;font-size:.95rem;">
-        ⚠️ You have reached your question limit for Guru SkyAI. Please try again later.
+      {% if remaining_questions > 0 %}
+        <form action="{{ url_for('user.ask_guru') }}" method="post">
+          <textarea name="question" placeholder="Type your question here..." required
+                    style="width:100%;height:120px;border-radius:10px;padding:1rem;font-size:1rem;"></textarea>
+          <button type="submit" class="btn-primary" style="width:100%;margin-top:1rem;">🔮 Ask the Guru</button>
+        </form>
+        <p style="color:#eee;margin-top:1rem;">✨ You have {{ remaining_questions }} question{{ 's' if remaining_questions != 1 else '' }} remaining.</p>
+      {% else %}
+        <p style="color:#fcd5ce;">⚠️ You have used all your Guru questions.</p>
+      {% endif %}
+    </div>
+
+    <!-- ▸ Botão de novo pagamento se tudo usado ------------------------- -->
+    {% if has_report and has_compat and remaining_questions == 0 %}
+      <div class="section-card"
+           style="background:rgba(255,255,255,0.04);padding:1.5rem;border-radius:12px;margin-top:2rem;text-align:center;">
+        <h3 style="color:#ffcc00;margin-bottom:1rem;">🔄 Unlock More!</h3>
+        <p style="color:#ccc;margin-bottom:1rem;">You've used all features. Purchase again to unlock a new report, compatibility, and more Guru questions!</p>
+        <a href="https://buy.stripe.com/bJefZg96w76eaLn0zj5AQ09" class="btn-primary">💳 Buy Again</a>
       </div>
     {% endif %}
 
-    <h3 style="color:#ffdd77;margin-bottom:1rem;">🧙‍♂️ Ask the Guru SkyAI</h3>
-    <a href="https://buy.stripe.com/bJefZg96w76eaLn0zj5AQ09" class="btn-primary" style="width:100%;">🔮 Ask the Guru</a>
-  </div>
-
-  <!-- ▸ Respostas Recentes do Guru --------------------------------------- -->
-  {% if guru_answers %}
-  <div class="section-card"
-       style="background:rgba(255,255,255,0.04);padding:1.5rem;border-radius:12px;margin-top:2rem;">
-    <h3 style="color:#FCE495;margin-bottom:1rem;">🧙‍♀️ Recent Answers from Guru SkyAI</h3>
-    {% for q in guru_answers %}
-      <div style="margin-bottom:2rem;padding-bottom:1.5rem;border-bottom:1px solid rgba(255,255,255,0.1);">
-        <p style="color:#ddd;"><strong>📝 Question:</strong> {{ q.question }}</p>
-        {% if q.answer %}
-          <p style="color:#eee;margin-top:.5rem;"><strong>🔮 Answer:</strong> {{ q.answer }}</p>
-        {% else %}
-          <p style="color:#aaa;margin-top:.5rem;">⏳ Answer pending...</p>
-        {% endif %}
-        <p style="font-size:.85rem;color:#999;margin-top:.75rem;">
-          <em>{{ q.created_at.strftime('%b %d, %Y %H:%M') }}</em>
-        </p>
-      </div>
-    {% endfor %}
-  </div>
+    <!-- ▸ Respostas Recentes do Guru ------------------------------------ -->
+    {% if guru_answers %}
+    <div class="section-card"
+         style="background:rgba(255,255,255,0.04);padding:1.5rem;border-radius:12px;margin-top:2rem;">
+      <h3 style="color:#FCE495;margin-bottom:1rem;">🧙‍♀️ Recent Answers from Guru SkyAI</h3>
+      {% for q in guru_answers %}
+        <div style="margin-bottom:2rem;padding-bottom:1.5rem;border-bottom:1px solid rgba(255,255,255,0.1);">
+          <p style="color:#ddd;"><strong>📝 Question:</strong> {{ q.question }}</p>
+          {% if q.answer %}
+            <p style="color:#eee;margin-top:.5rem;"><strong>🔮 Answer:</strong> {{ q.answer }}</p>
+          {% else %}
+            <p style="color:#aaa;margin-top:.5rem;">⏳ Answer pending...</p>
+          {% endif %}
+          <p style="font-size:.85rem;color:#999;margin-top:.75rem;">
+            <em>{{ q.created_at.strftime('%b %d, %Y %H:%M') }}</em>
+          </p>
+        </div>
+      {% endfor %}
+    </div>
+    {% endif %}
   {% endif %}
 
 </div>
