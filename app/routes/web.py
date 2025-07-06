@@ -8,6 +8,8 @@ from datetime import datetime
 from sqlalchemy import func
 import json
 from sqlalchemy.exc import SQLAlchemyError
+from app.models import User, TestSession, GuruQuestion, Payment
+
 
 # ⬇️  REMOVIDO:  from app.services.insights_service import get_past_insights
 
@@ -130,7 +132,7 @@ def logout():
     flash("You have successfully logged out!", "info")
     return redirect(url_for('auth_views.login_view'))
 
-# 🔹 Dashboard com contagem de perguntas ao Guru
+# ✅ /dashboard super seguro
 @auth_views.route('/dashboard')
 def dashboard():
     if 'user_id' not in session:
@@ -140,44 +142,51 @@ def dashboard():
     user_id = session['user_id']
     user = User.query.get(user_id)
 
-    # 📌 Verifica pagamento confirmado
-    has_paid = Payment.query.filter_by(user_id=user_id, status='paid').first() is not None
-
-    # 📌 Verifica se já gerou relatório
-    has_report = TestSession.query.filter_by(user_id=user_id).count() > 0
-
-    # 📌 Verifica se já fez compatibilidade amorosa
-    has_compat = LoveCompatibility.query.filter_by(user_id=user_id).count() > 0
-
-    # 📌 Verifica quantas perguntas ao Guru já fez
-    used_questions = GuruQuestion.query.filter_by(user_id=user_id).count()
-    remaining_questions = max(0, 4 - used_questions)
-
-    # Últimos relatórios & respostas
+    # 🔍 Puxa sessões (relatórios) recentes do usuário
     sessoes = (
-        TestSession.query.filter_by(user_id=user_id)
-        .order_by(TestSession.created_at.desc()).limit(6).all()
+        TestSession.query
+        .filter_by(user_id=user_id)
+        .order_by(TestSession.created_at.desc())
+        .limit(6)
+        .all()
     )
+
     ultima_sessao = sessoes[0] if sessoes else None
     total = len(sessoes)
 
+    # 🔍 Verifica se tem pagamento registrado
+    payment_exists = Payment.query.filter_by(user_id=user_id, status='paid').first()
+
+    # 🔮 Contagem de perguntas ao Guru (só se tem pagamento)
+    start_of_month = datetime.utcnow().replace(day=1, hour=0, minute=0, second=0, microsecond=0)
+    used_questions = db.session.query(func.count()).select_from(GuruQuestion).filter(
+        GuruQuestion.user_id == user_id,
+        GuruQuestion.created_at >= start_of_month
+    ).scalar()
+    remaining_questions = max(0, 4 - used_questions)
+
+    limit_exceeded = remaining_questions <= 0
+
+    # 🔮 Últimas respostas do Guru (opcional)
     guru_answers = (
-        GuruQuestion.query.filter_by(user_id=user_id)
-        .order_by(GuruQuestion.created_at.desc()).limit(3).all()
+        GuruQuestion.query
+        .filter_by(user_id=user_id)
+        .order_by(GuruQuestion.created_at.desc())
+        .limit(3)
+        .all()
     )
 
     return render_template(
         "dashboard.html",
         nome=user.name,
         email=user.email,
-        has_paid=has_paid,
-        has_report=has_report,
-        has_compat=has_compat,
-        remaining_questions=remaining_questions,
         sessoes=sessoes,
         ultima_sessao=ultima_sessao,
         total=total,
-        guru_answers=guru_answers,
+        payment_exists=payment_exists,
+        remaining_questions=remaining_questions,
+        limit_exceeded=limit_exceeded,
+        guru_answers=guru_answers
     )
 
 # 🔹 Termos de uso
