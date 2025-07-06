@@ -82,37 +82,27 @@ def processando_relatorio():
     user_id = session['user_id']
     pending = session.get('pending_data')
 
-    # ⚡️ Flag ?paid=true para usuários que voltam pelo success_url
+    # 🔑 Pega flag & ID do Stripe (opcional)
     pago = request.args.get('paid') == 'true'
+    stripe_session_id = request.args.get('session_id')
 
-    # ✅ Se não tem dados ➜ evita loop
+    # 🚫 Evita loop se não tem dados
     if not pending:
         flash("Session expired or no data to process.", "warning")
         return redirect(url_for('auth_views.dashboard'))
 
     try:
-        # ⚡️ Se ?paid=true ➜ registra pagamento manual se ainda não tiver
+        # ✅ SE está marcado como pago, confirma se webhook registrou
         if pago:
             payment_exists = Payment.query.filter_by(user_id=user_id).first()
             if not payment_exists:
-                # Para link fixo, o stripe_session_id é simbólico
-                new_payment = Payment(
-                    user_id=user_id,
-                    stripe_session_id="manual-link",  # Identifica link fixo
-                    amount=29.90,
-                    status='paid'
-                )
-                db.session.add(new_payment)
-                db.session.commit()
-                current_app.logger.info(f"[PAYMENT] ✔️ Payment registered manually for user {user_id}.")
+                current_app.logger.warning(f"[PROCESSANDO] Payment missing for user {user_id}! Webhook may have failed.")
+                flash("Payment not confirmed yet. Please wait or contact support.", "warning")
+                return redirect(url_for('auth_views.dashboard'))
+            else:
+                current_app.logger.info(f"[PROCESSANDO] Payment found for user {user_id}: OK.")
 
-        # ⚡️ 🔒 Confirma que user pagou (via webhook ou manual)
-        payment_ok = Payment.query.filter_by(user_id=user_id, status='paid').first()
-        if not payment_ok:
-            flash("No valid payment found. Please complete your payment first.", "warning")
-            return redirect(url_for('auth_views.dashboard'))
-
-        # ✅ Cria nova TestSession usando dados salvos
+        # ⚡️ Cria nova TestSession
         new_sessao = TestSession(
             user_id=user_id,
             full_name=pending['full_name'],
@@ -124,11 +114,11 @@ def processando_relatorio():
         db.session.add(new_sessao)
         db.session.commit()
 
-        # Limpa pending_data para evitar duplicidade
+        # ✅ Limpa dados pendentes para não duplicar
         session.pop('pending_data', None)
         session.modified = True
 
-        # 🔥 Gera relatório em segundo plano
+        # ⚡️ Gera relatório em background
         threading.Thread(
             target=gerar_relatorio_background,
             args=(current_app._get_current_object(), new_sessao.id)
