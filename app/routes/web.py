@@ -132,17 +132,20 @@ def logout():
     flash("You have successfully logged out!", "info")
     return redirect(url_for('auth_views.login_view'))
 
-# ✅ /dashboard super seguro
+# app/routes/web.py  ➜  trecho completo da view dashboard()
+
 @auth_views.route('/dashboard')
 def dashboard():
-    if 'user_id' not in session:
+    if "user_id" not in session:
         flash("You need to log in to access the dashboard.", "error")
-        return redirect(url_for('auth_views.login_view'))
+        return redirect(url_for("auth_views.login_view"))
 
-    user_id = session['user_id']
-    user = User.query.get(user_id)
+    user_id = session["user_id"]
+    user     = User.query.get(user_id)
 
-    # 🔍 Puxa sessões (relatórios) recentes do usuário
+    # ─────────────────────────────────────────────────────────────
+    # 1. Relatórios recentes (máx. 6) – para o card “View my report”
+    # ─────────────────────────────────────────────────────────────
     sessoes = (
         TestSession.query
         .filter_by(user_id=user_id)
@@ -150,32 +153,56 @@ def dashboard():
         .limit(6)
         .all()
     )
-
     ultima_sessao = sessoes[0] if sessoes else None
-    total = len(sessoes)
+    total         = len(sessoes)
 
-    # 🔍 Verifica se tem pagamento registrado
-    payment_exists = Payment.query.filter_by(user_id=user_id, status='paid').first()
-
-    # 🔮 Contagem de perguntas ao Guru (só se tem pagamento)
-    start_of_month = datetime.utcnow().replace(day=1, hour=0, minute=0, second=0, microsecond=0)
-    used_questions = db.session.query(func.count()).select_from(GuruQuestion).filter(
-        GuruQuestion.user_id == user_id,
-        GuruQuestion.created_at >= start_of_month
-    ).scalar()
-    remaining_questions = max(0, 4 - used_questions)
-
-    limit_exceeded = remaining_questions <= 0
-
-    # 🔮 Últimas respostas do Guru (opcional)
-    guru_answers = (
-        GuruQuestion.query
-        .filter_by(user_id=user_id)
-        .order_by(GuruQuestion.created_at.desc())
-        .limit(3)
-        .all()
+    # ─────────────────────────────────────────────────────────────
+    # 2. Pagamento: procura por user_id **ou** e-mail (robusto p/ links Stripe)
+    # ─────────────────────────────────────────────────────────────
+    payment_exists = (
+        db.session.query(Payment)
+        .join(User, Payment.user_id == User.id)
+        .filter(
+            (User.id == user_id) | (User.email == user.email),  # id OU e-mail
+            Payment.status == "paid"
+        )
+        .first()
     )
 
+    show_pay_banner = payment_exists is None   # banner “Pay Now” ?
+
+    # ─────────────────────────────────────────────────────────────
+    # 3. Guru SkyAI – só conta se há pagamento confirmado
+    # ─────────────────────────────────────────────────────────────
+    remaining_questions = 0
+    limit_exceeded      = True
+    guru_answers        = []
+
+    if payment_exists:
+        first_day = datetime.utcnow().replace(day=1, hour=0, minute=0,
+                                              second=0, microsecond=0)
+
+        used = (
+            db.session.query(func.count())
+            .select_from(GuruQuestion)
+            .filter(GuruQuestion.user_id == user_id,
+                    GuruQuestion.created_at >= first_day)
+            .scalar()
+        )
+        remaining_questions = max(0, 4 - used)
+        limit_exceeded      = remaining_questions == 0
+
+        guru_answers = (
+            GuruQuestion.query
+            .filter_by(user_id=user_id)
+            .order_by(GuruQuestion.created_at.desc())
+            .limit(3)
+            .all()
+        )
+
+    # ─────────────────────────────────────────────────────────────
+    # 4. Render
+    # ─────────────────────────────────────────────────────────────
     return render_template(
         "dashboard.html",
         nome=user.name,
@@ -183,7 +210,7 @@ def dashboard():
         sessoes=sessoes,
         ultima_sessao=ultima_sessao,
         total=total,
-        payment_exists=payment_exists,
+        show_pay_banner=show_pay_banner,          # ← usa no template
         remaining_questions=remaining_questions,
         limit_exceeded=limit_exceeded,
         guru_answers=guru_answers
