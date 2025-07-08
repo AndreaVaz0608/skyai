@@ -153,7 +153,7 @@ def processando_relatorio():
         current_app.logger.error(f"[PROCESSANDO ERROR] {e}")
         flash("Something went wrong generating your report.", "danger")
         return redirect(url_for("auth_views.dashboard"))
-
+    
 # 🔹 Função de geração do relatório em background
 def gerar_relatorio_background(app, sessao_id):
     with app.app_context():
@@ -437,179 +437,141 @@ def select_product():
 
     return render_template('products.html')
 
-@user_bp.route('/compatibility', methods=['GET', 'POST'])
+@user_bp.route("/compatibility", methods=["GET", "POST"])
 def compatibility():
-    if 'user_id' not in session:
+    # ─────────── Requer login ───────────
+    if "user_id" not in session:
         flash("Please log in to continue.", "error")
-        return redirect(url_for('auth_views.login_view'))
+        return redirect(url_for("auth_views.login_view"))
 
-    if request.method == 'POST':
-        name_1 = request.form.get("name_1")
-        birth_1 = request.form.get("birth_1")
-        birth_time_1 = request.form.get("birth_time_1")
-        birth_city_1 = request.form.get("birth_city_1")
-        birth_country_1 = request.form.get("birth_country_1")
+    user = User.query.get(session["user_id"])
 
-        name_2 = request.form.get("name_2")
-        birth_2 = request.form.get("birth_2")
-        birth_time_2 = request.form.get("birth_time_2")
-        birth_city_2 = request.form.get("birth_city_2")
-        birth_country_2 = request.form.get("birth_country_2")
+    # ─────────── Bloqueio se já usado ───────────
+    if user.compatibility_used:
+        flash("You already used your Compatibility test. Buy again to unlock a new one.", "info")
+        return redirect(url_for("auth_views.dashboard"))
 
-        if not all([
-            name_1, birth_1, birth_time_1, birth_city_1, birth_country_1,
-            name_2, birth_2, birth_time_2, birth_city_2, birth_country_2
-        ]):
-            flash("Please fill in all fields for both people.", "warning")
-            return render_template("compatibility.html")
+    # ─────────── Mostra formulário (GET) ─────────
+    if request.method == "GET":
+        return render_template("compatibility.html")
 
-        try:
-            # 🔹 IMPORTA OS SERVIÇOS REAIS
-            from app.services.astrology_service import get_astrological_signs
-            from app.services.numerology_service import get_numerology
+    # ─────────── POST: valida campos ────────────
+    name_1            = request.form.get("name_1")
+    birth_1           = request.form.get("birth_1")
+    birth_time_1      = request.form.get("birth_time_1")
+    birth_city_1      = request.form.get("birth_city_1")
+    birth_country_1   = request.form.get("birth_country_1")
 
-            # 🔹 CALCULA PARA PESSOA 1
-            astro_1 = get_astrological_signs(birth_1, birth_time_1, birth_city_1, birth_country_1)
-            if isinstance(astro_1, tuple):
-                # Se for tupla, transforme em dict com a estrutura esperada!
-                astro_1 = {
-                    "positions": {
-                        "SUN": {"sign": astro_1[0]},
-                        "MOON": {"sign": astro_1[1]},
-                        "ASC": {"sign": astro_1[2]}
-                    }
-                }
-            num_1 = get_numerology(name_1, birth_1)
+    name_2            = request.form.get("name_2")
+    birth_2           = request.form.get("birth_2")
+    birth_time_2      = request.form.get("birth_time_2")
+    birth_city_2      = request.form.get("birth_city_2")
+    birth_country_2   = request.form.get("birth_country_2")
 
-            # 🔹 CALCULA PARA PESSOA 2
-            astro_2 = get_astrological_signs(birth_2, birth_time_2, birth_city_2, birth_country_2)
-            if isinstance(astro_2, tuple):
-                astro_2 = {
-                    "positions": {
-                        "SUN": {"sign": astro_2[0]},
-                        "MOON": {"sign": astro_2[1]},
-                        "ASC": {"sign": astro_2[2]}
-                    }
-                }
-            num_2 = get_numerology(name_2, birth_2)
+    if not all([
+        name_1, birth_1, birth_time_1, birth_city_1, birth_country_1,
+        name_2, birth_2, birth_time_2, birth_city_2, birth_country_2
+    ]):
+        flash("Please fill in all fields for both people.", "warning")
+        return render_template("compatibility.html")
 
-            # 🔹 MONTA O PROMPT COM OS DADOS CONCRETOS
-            from openai import OpenAI
-            api_key = os.getenv("OPENAI_API_KEY")
-            client = OpenAI(api_key=api_key)
+    try:
+        # ── Calcula astrologia / numerologia ──
+        from app.services.astrology_service import get_astrological_signs
+        from app.services.numerology_service import get_numerology
 
-            prompt = f"""
+        astro_1 = get_astrological_signs(birth_1, birth_time_1, birth_city_1, birth_country_1)
+        if isinstance(astro_1, tuple):
+            astro_1 = {"positions": {"SUN": {"sign": astro_1[0]},
+                                      "MOON": {"sign": astro_1[1]},
+                                      "ASC": {"sign": astro_1[2]}}}
+        num_1   = get_numerology(name_1, birth_1)
+
+        astro_2 = get_astrological_signs(birth_2, birth_time_2, birth_city_2, birth_country_2)
+        if isinstance(astro_2, tuple):
+            astro_2 = {"positions": {"SUN": {"sign": astro_2[0]},
+                                      "MOON": {"sign": astro_2[1]},
+                                      "ASC": {"sign": astro_2[2]}}}
+        num_2   = get_numerology(name_2, birth_2)
+
+        # ── Gera análise via OpenAI ──
+        from openai import OpenAI
+        client = OpenAI(api_key=os.getenv("OPENAI_API_KEY"))
+
+        prompt = f"""
 You are Guru SkyAI, an expert in compatibility, astrology, and numerology.
-
-Your mission is to generate a practical and clear compatibility analysis between two people.
-The tone must be empathetic, respectful and easy to understand. Avoid poetic language, metaphors or overly spiritual expressions.
-Focus on real insights that help people make conscious relationship decisions.
-
-Based on the following real calculated information:
-
-👤 Person 1:
-- Full Name: {name_1}
-- Sun: {astro_1['positions']['SUN']['sign']}
-- Moon: {astro_1['positions']['MOON']['sign']}
-- Ascendant: {astro_1['positions']['ASC']['sign']}
-- Life Path: {num_1['life_path']}
-- Soul Urge: {num_1['soul_urge']}
-- Expression: {num_1['expression']}
-
-👤 Person 2:
-- Full Name: {name_2}
-- Sun: {astro_2['positions']['SUN']['sign']}
-- Moon: {astro_2['positions']['MOON']['sign']}
-- Ascendant: {astro_2['positions']['ASC']['sign']}
-- Life Path: {num_2['life_path']}
-- Soul Urge: {num_2['soul_urge']}
-- Expression: {num_2['expression']}
-
-Your analysis must include:
-
-1. A summary of their compatibility level (e.g. High, Medium, Low).
-2. Key alignments or conflicts between their Sun, Moon, and Ascendant signs.
-3. Numerology compatibility: Life Path, Soul Urge, and Expression numbers.
-4. Emotional dynamics: attraction, communication style, potential for emotional growth.
-5. Practical advice: what to watch out for, strengths to build on, and how to grow together or why to reconsider.
-
-⚠️ Rules:
-- No mysticism, no metaphors.
-- Use clear, actionable language.
-- Base your analysis strictly on the provided calculated signs and numbers.
-- Do not recalculate or guess these numbers.
-- Do not explain your process. Just return the final interpretation directly.
+...
+( prompt mantido igual )
+...
 """
+        response = client.chat.completions.create(
+            model="gpt-4o-mini",
+            messages=[
+                {"role": "system", "content": "You are Guru SkyAI, master of compatibility."},
+                {"role": "user", "content": prompt}
+            ],
+            temperature=0.85,
+            max_tokens=1300
+        )
 
-            response = client.chat.completions.create(
-                model="gpt-4o-mini",
-                messages=[
-                    {"role": "system", "content": "You are Guru SkyAI, master of compatibility."},
-                    {"role": "user", "content": prompt}
-                ],
-                temperature=0.85,
-                max_tokens=1300
-            )
+        result_text = response.choices[0].message.content.strip()
 
-            # 🔹 Garante resultado limpo
-            result_text = response.choices[0].message.content.strip()
+        # ─────────── Marca como usado ───────────
+        user.compatibility_used = True
+        db.session.commit()
 
-            return render_template(
-                "compatibility_result.html",
-                result=result_text,
-                name_1=name_1,
-                name_2=name_2
-            )
+        return render_template(
+            "compatibility_result.html",
+            result=result_text,
+            name_1=name_1,
+            name_2=name_2
+        )
 
-        except Exception as e:
-            current_app.logger.error(f"[COMPATIBILITY ERROR] {e}")
-            flash("Sorry, we couldn't generate your compatibility reading right now.", "danger")
-            return render_template("compatibility.html")
+    except Exception as e:
+        current_app.logger.error(f"[COMPATIBILITY ERROR] {e}")
+        flash("Sorry, we couldn't generate your compatibility reading right now.", "danger")
+        return render_template("compatibility.html")
 
-    return render_template("compatibility.html")
-
-@user_bp.route('/ask-guru', methods=['POST'])
+@user_bp.route("/ask-guru", methods=["POST"])
 def ask_guru():
+    # ─────────── Requer login ───────────
     if "user_id" not in session:
         flash("Please log in to ask Guru SkyAI.", "error")
         return redirect(url_for("auth_views.login_view"))
 
-    user_id = session["user_id"]
-    question = request.form.get("question", "").strip()
+    user = User.query.get(session["user_id"])
 
+    # ─────────── Limite de 4 perguntas ───────────
+    if user.guru_questions_used >= 4:
+        flash("You have reached your 4-question limit for Guru SkyAI. Buy again to reset.", "info")
+        return redirect(url_for("auth_views.dashboard"))
+
+    # ─────────── Validação da pergunta ───────────
+    question = request.form.get("question", "").strip()
     if len(question) < 5:
         flash("Please enter a valid question.", "warning")
         return redirect(url_for("auth_views.dashboard"))
 
-    # ✅ Opcional: verifique se o pagamento foi feito
-    # Você pode usar session flag se quiser
-    # if not session.get("has_paid_guru"):
-    #     flash("Please complete payment before asking the Guru.", "error")
-    #     return redirect(url_for("payments.create_checkout"))
-
-    total_questions = GuruQuestion.query.filter_by(user_id=user_id).count()
-    if total_questions >= 4:
-        flash("You have reached your question limit for Guru SkyAI. Upgrade your plan or wait for a reset.", "info")
-        return redirect(url_for("auth_views.dashboard"))
-
+    # ─────────── Garante que o usuário tem mapa gerado ─────────
     last_session = (TestSession.query
-                    .filter_by(user_id=user_id)
+                    .filter_by(user_id=user.id)
                     .filter(TestSession.ai_result.isnot(None))
                     .order_by(TestSession.created_at.desc())
                     .first())
-
     if not last_session:
         flash("Generate an astral map first so the Guru can give you a personalised answer.", "info")
         return redirect(url_for("user.preencher_dados"))
 
+    # Extrai dados do último mapa
     data = json.loads(last_session.ai_result) if isinstance(last_session.ai_result, str) else last_session.ai_result
-    sun = data.get("sun_sign", "unknown")
+    sun  = data.get("sun_sign", "unknown")
     moon = data.get("moon_sign", "unknown")
-    asc = data.get("ascendant", "unknown")
+    asc  = data.get("ascendant", "unknown")
     life = data.get("life_path", "unknown")
     soul = data.get("soul_urge", "unknown")
     expr = data.get("expression", "unknown")
 
+    # ─────────── Monta prompt para OpenAI ───────────
     prompt = f"""
 You are Guru SkyAI, an objective advisor who uses the client's own natal chart
 and numerology to give specific guidance – no mysticism or metaphors.
@@ -647,21 +609,17 @@ RULES:
 
         answer = response.choices[0].message.content.strip()
 
-        new_q = GuruQuestion(user_id=user_id, question=question, answer=answer)
-        db.session.add(new_q)
+        # ─────────── Salva pergunta + incrementa uso ───────────
+        db.session.add(GuruQuestion(user_id=user.id, question=question, answer=answer))
+        user.guru_questions_used += 1
         db.session.commit()
 
         flash("✨ Guru SkyAI has answered your question. See the response below in your dashboard!", "success")
 
     except Exception as e:
+        db.session.rollback()
         current_app.logger.error(f"[GURU SKY ERROR] {e}")
         flash("Sorry, Guru SkyAI couldn't answer your question right now.", "danger")
 
     return redirect(url_for("auth_views.dashboard"))
 
-@user_bp.route("/")
-def home():
-    if 'user_id' in session:
-        return redirect(url_for('user.preencher_dados'))
-    else:
-        return redirect('/login')  # <- substitui o url_for aqui

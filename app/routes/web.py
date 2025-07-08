@@ -134,17 +134,17 @@ def logout():
 
 # app/routes/web.py  ➜  trecho completo da view dashboard()
 
-@auth_views.route('/dashboard')
+@auth_views.route("/dashboard")
 def dashboard():
     if "user_id" not in session:
         flash("You need to log in to access the dashboard.", "error")
         return redirect(url_for("auth_views.login_view"))
 
     user_id = session["user_id"]
-    user     = User.query.get(user_id)
+    user    = User.query.get(user_id)
 
     # ─────────────────────────────────────────────────────────────
-    # 1. Relatórios recentes (máx. 6) – para o card “View my report”
+    # 1. Relatórios recentes (máx. 6)
     # ─────────────────────────────────────────────────────────────
     sessoes = (
         TestSession.query
@@ -157,41 +157,28 @@ def dashboard():
     total         = len(sessoes)
 
     # ─────────────────────────────────────────────────────────────
-    # 2. Pagamento: procura por user_id **ou** e-mail (robusto p/ links Stripe)
+    # 2. Existe pagamento "paid" vinculado ao usuário?
     # ─────────────────────────────────────────────────────────────
     payment_exists = (
         db.session.query(Payment)
-        .join(User, Payment.user_id == User.id)
-        .filter(
-            (User.id == user_id) | (User.email == user.email),  # id OU e-mail
-            Payment.status == "paid"
-        )
+        .filter(Payment.user_id == user_id, Payment.status == "paid")
         .first()
     )
-
-    show_pay_banner = payment_exists is None   # banner “Pay Now” ?
+    show_pay_banner = payment_exists is None  # mostra “Pay Now” se nunca pagou
 
     # ─────────────────────────────────────────────────────────────
-    # 3. Guru SkyAI – só conta se há pagamento confirmado
+    # 3. Guru SkyAI – usa créditos do usuário (0‒4)
     # ─────────────────────────────────────────────────────────────
     remaining_questions = 0
     limit_exceeded      = True
     guru_answers        = []
 
     if payment_exists:
-        first_day = datetime.utcnow().replace(day=1, hour=0, minute=0,
-                                              second=0, microsecond=0)
-
-        used = (
-            db.session.query(func.count())
-            .select_from(GuruQuestion)
-            .filter(GuruQuestion.user_id == user_id,
-                    GuruQuestion.created_at >= first_day)
-            .scalar()
-        )
-        remaining_questions = max(0, 4 - used)
+        # Créditos ainda disponíveis?
+        remaining_questions = max(0, 4 - user.guru_questions_used)
         limit_exceeded      = remaining_questions == 0
 
+        # Últimas 3 respostas (não precisa filtrar por mês)
         guru_answers = (
             GuruQuestion.query
             .filter_by(user_id=user_id)
@@ -210,10 +197,10 @@ def dashboard():
         sessoes=sessoes,
         ultima_sessao=ultima_sessao,
         total=total,
-        show_pay_banner=show_pay_banner,          # ← usa no template
+        show_pay_banner=show_pay_banner,
         remaining_questions=remaining_questions,
         limit_exceeded=limit_exceeded,
-        guru_answers=guru_answers
+        guru_answers=guru_answers,
     )
 
 # 🔹 Termos de uso

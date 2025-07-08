@@ -1,39 +1,42 @@
-# app/routes/stripe_webhook.py  ← replace everything with this
-import os, stripe
+# app/routes/stripe_webhook.py
+import os
+import stripe
 from flask import Blueprint, request, jsonify, current_app
+
 from app.main   import db
 from app.models import Payment, User
 
 stripe_webhook_bp = Blueprint("stripe_webhook", __name__, url_prefix="/stripe")
 
-stripe.api_key      = os.getenv("STRIPE_SECRET_KEY")
-endpoint_secret     = os.getenv("STRIPE_WEBHOOK_SECRET")
+stripe.api_key  = os.getenv("STRIPE_SECRET_KEY")
+endpoint_secret = os.getenv("STRIPE_WEBHOOK_SECRET")
 
 
 @stripe_webhook_bp.route("/webhook", methods=["POST"])
 def stripe_webhook():
-    payload = request.get_data(as_text=True)
-    sig_header = request.headers.get("Stripe-Signature")           # ← case-exact
+    payload    = request.get_data(as_text=True)
+    sig_header = request.headers.get("Stripe-Signature")    # header exato
+
     try:
         event = stripe.Webhook.construct_event(payload, sig_header, endpoint_secret)
     except (ValueError, stripe.error.SignatureVerificationError) as e:
         current_app.logger.error(f"[STRIPE WEBHOOK] Signature/payload error → {e}")
         return jsonify(success=False), 400
 
-    # ── Handle successful payment/checkout ───────────────────────────────────
+    # ── Apenas checkout.session.completed nos interessa ────────────────────
     if event["type"] == "checkout.session.completed":
         sess              = event["data"]["object"]
         stripe_session_id = sess["id"]
         amount_total      = (sess.get("amount_total") or 0) / 100  # cents → USD
 
-        # 1️⃣ Try the simple fields
+        # 1) Pega e-mail direto
         user_email = sess.get("customer_email")
 
-        # 2️⃣ Fallback: customer_details.email
+        # 2) Fallback: customer_details.email
         if not user_email:
             user_email = (sess.get("customer_details") or {}).get("email")
 
-        # 3️⃣ Last resort: retrieve the Customer object
+        # 3) Último esforço: consulta Customer
         if not user_email and sess.get("customer"):
             try:
                 cust = stripe.Customer.retrieve(sess["customer"])
@@ -50,10 +53,11 @@ def stripe_webhook():
             current_app.logger.error(f"[STRIPE WEBHOOK] No user with e-mail {user_email}")
             return jsonify(success=False), 400
 
-        # Idempotent insert
+        # Idempotência — só processa se ainda não existir
         if Payment.query.filter_by(stripe_session_id=stripe_session_id).first():
             current_app.logger.info(f"[STRIPE WEBHOOK] Session {stripe_session_id} already stored")
         else:
+            # ❶ Insere pagamento
             db.session.add(
                 Payment(
                     user_id=user.id,
@@ -62,10 +66,13 @@ def stripe_webhook():
                     status="paid",
                 )
             )
+
+            # ❷ Reseta créditos de uso
+            user.reset_credits()
+
             db.session.commit()
             current_app.logger.info(
-                f"[STRIPE WEBHOOK] ✔ Payment saved for user {user.id} – ${amount_total}"
+                f"[STRIPE WEBHOOK] ✔ Payment saved & credits reset – user {user.id} – ${amount_total}"
             )
 
-    # (ignore every other event type)
-    return jsonify(success=True), 200
+    return jsonify(success=True), 200  # ignora outros eventos
