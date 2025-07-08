@@ -48,22 +48,24 @@
       </div>
     {% endif %}
 
-    <!-- ▸ Compatibilidade Amorosa ---------------------------------------- -->
-    <div class="section-card highlight"
-         style="background:rgba(255,255,255,0.04);padding:1.5rem;border-radius:12px;margin-top:1rem;">
-      <h3 style="color:#ffddcc;margin-bottom:.8rem;">💘 Love Compatibility</h3>
-      <p style="color:#ccc;margin-bottom:1rem;">
-        Discover the cosmic chemistry between you and a partner.
-      </p>
+    <!-- ▸ Compatibilidade Amorosa – Upsell --------------------------------- -->
+<div class="section-card highlight"
+     style="background:rgba(255,255,255,0.04);padding:1.5rem;border-radius:12px;margin-top:1rem;">
+  <h3 style="color:#ffddcc;margin-bottom:.8rem;">💘 Love Compatibility <small>(US$ 14.99)</small></h3>
+  <p style="color:#ccc;margin-bottom:1rem;">
+    Discover the cosmic chemistry between you and a partner.
+  </p>
 
-      {% if compatibility_used %}
-        <p style="color:#fcd5ce;">✅ You have already used your Compatibility test.</p>
-      {% else %}
-        <a href="{{ url_for('user.compatibility') }}" class="btn-primary" style="width:100%;">
-          💞 Start Compatibility Test
-        </a>
-      {% endif %}
-    </div>
+  <!-- Link fixo Stripe – upsell separado -->
+  <a href="https://buy.stripe.com/8x25kC6YogGO6v781L5AQ0b"
+     class="btn-primary" style="width:100%;">
+     💞 Unlock Compatibility – US$ 14.99
+  </a>
+
+  <p style="color:#fcd5ce;margin-top:1.5rem;font-size:.95rem;text-align:left;">
+    ✨ Optional add-on. Purchase separately any time you like!
+  </p>
+</div>
 
     <!-- ▸ Métrica de Perguntas ------------------------------------------- -->
     <div style="font-size:1.05rem;margin:2rem 0 1rem;color:#eee;">
