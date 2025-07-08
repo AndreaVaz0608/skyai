@@ -1,17 +1,17 @@
 # app/main.py
+import os
+import logging
+import smtplib
 
 from flask import Flask
 from flask_sqlalchemy import SQLAlchemy
 from flask_jwt_extended import JWTManager
 from flask_mail import Mail
+
 from app.config import Config
 
-import logging
-import smtplib
-import os
-
 # ── Extensões globais ──────────────────────────────
-db = SQLAlchemy()
+db  = SQLAlchemy()
 jwt = JWTManager()
 mail = Mail()
 
@@ -20,19 +20,19 @@ def create_app() -> Flask:
     app = Flask(__name__)
     app.config.from_object(Config)
 
-    print("[DB CHECK] URI ativa:", app.config['SQLALCHEMY_DATABASE_URI'])
+    print("[DB CHECK] URI ativa:", app.config["SQLALCHEMY_DATABASE_URI"])
 
     db.init_app(app)
     jwt.init_app(app)
     mail.init_app(app)
 
-        # ── Blueprints ──────────────────────────────────
+    # ── Blueprints ──────────────────────────────────
     with app.app_context():
         from app.routes.web            import auth_views
         from app.routes.user           import user_bp
         from app.routes.contato        import contato_views
-        from app.routes.payments       import payments_bp
-        from app.routes.stripe_webhook import stripe_webhook_bp  # ✅ webhook
+        from app.routes.payments        import payments_bp        # ← arquivo singular
+        from app.routes.stripe_webhook import stripe_webhook_bp  # ← recomendação #3
 
         app.register_blueprint(auth_views)
         app.register_blueprint(user_bp)
@@ -40,7 +40,7 @@ def create_app() -> Flask:
         app.register_blueprint(payments_bp)
         app.register_blueprint(stripe_webhook_bp)
 
-    # ── SMTP Debug (opcional) ──────────────────────
+    # ── SMTP Debug (opcional) ───────────────────────
     if app.config.get("DEBUG", False):
         mail_logger = logging.getLogger("smtplib")
         mail_logger.setLevel(logging.DEBUG)
@@ -56,5 +56,5 @@ app = create_app()
 
 # ── Execução local ─────────────────────────────────
 if __name__ == "__main__":
-    port = int(os.environ.get("PORT", 5000))
+    port = int(os.getenv("PORT", 5000))
     app.run(host="0.0.0.0", port=port, debug=True)

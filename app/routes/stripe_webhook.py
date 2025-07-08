@@ -12,7 +12,7 @@ endpoint_secret     = os.getenv("STRIPE_WEBHOOK_SECRET")
 
 @stripe_webhook_bp.route("/webhook", methods=["POST"])
 def stripe_webhook():
-    payload    = request.data
+    payload = request.get_data(as_text=True)
     sig_header = request.headers.get("Stripe-Signature")           # ← case-exact
     try:
         event = stripe.Webhook.construct_event(payload, sig_header, endpoint_secret)
