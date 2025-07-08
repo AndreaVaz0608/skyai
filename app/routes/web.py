@@ -191,16 +191,16 @@ def dashboard():
     # 4. Render
     # ─────────────────────────────────────────────────────────────
     return render_template(
-        "dashboard.html",
-        nome=user.name,
-        email=user.email,
-        sessoes=sessoes,
-        ultima_sessao=ultima_sessao,
-        total=total,
-        show_pay_banner=show_pay_banner,
-        remaining_questions=remaining_questions,
-        limit_exceeded=limit_exceeded,
-        guru_answers=guru_answers,
+    "dashboard.html",
+    nome=user.name,
+    email=user.email,
+    total=total,
+    ultima_sessao=ultima_sessao,
+    show_pay_banner=show_pay_banner,
+    compatibility_used=user.compatibility_used,   # ← essencial
+    remaining_questions=remaining_questions,
+    limit_exceeded=limit_exceeded,
+    guru_answers=guru_answers,
     )
 
 # 🔹 Termos de uso
