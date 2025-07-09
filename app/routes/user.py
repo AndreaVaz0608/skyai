@@ -84,14 +84,11 @@ def processando_relatorio():
     user_id           = session["user_id"]
     pending           = session.get("pending_data")
     pago              = request.args.get("paid") == "true"
-    stripe_session_id = request.args.get("session_id")   # real id que vem do success_url
+    stripe_session_id = request.args.get("session_id")        # real id que vem do success_url
 
-    # ─────────── Se já não há dados pendentes ───────────
+    # ─────────── Proteção contra loop ───────────
     if not pending:
-        # Se conhecemos a sessão criada, manda direto para o relatório
-        if stripe_session_id:
-            return redirect(url_for("user.gerar_relatorio", sessao_id=stripe_session_id))
-        # Caso contrário, vai silenciosamente para o dashboard
+        flash("Session expired or no data to process.", "warning")
         return redirect(url_for("auth_views.dashboard"))
 
     try:
@@ -105,11 +102,12 @@ def processando_relatorio():
 
             payment = pay_q.first()
 
-            # ❶  Web-hook ainda não chegou? — redireciona sem alerta
+            # ❶  Web-hook ainda não chegou? — avisa o usuário
             if not payment:
                 current_app.logger.warning(
                     f"[PROCESSANDO] Payment not found (user {user_id}, session {stripe_session_id})"
                 )
+                flash("Payment not confirmed yet. Please wait a few seconds and refresh.", "warning")
                 return redirect(url_for("auth_views.dashboard"))
 
             # ❷  Já existe = tudo certo
@@ -135,7 +133,7 @@ def processando_relatorio():
 
         # ─────────── Geração assíncrona ───────────
         threading.Thread(
-            target=gerar_relatorio_background,  # type: ignore[name-defined]
+            target=gerar_relatorio_background,
             args=(current_app._get_current_object(), new_sessao.id),
             daemon=True,
         ).start()
@@ -144,7 +142,6 @@ def processando_relatorio():
             f"[PROCESSANDO] ✔ TestSession {new_sessao.id} criada para user {user_id}"
         )
 
-        # Permanece na tela de loading até o relatório ficar pronto
         return render_template(
             "carregando.html",
             sessao_id=new_sessao.id,
@@ -156,6 +153,51 @@ def processando_relatorio():
         current_app.logger.error(f"[PROCESSANDO ERROR] {e}")
         flash("Something went wrong generating your report.", "danger")
         return redirect(url_for("auth_views.dashboard"))
+    
+# 🔹 Função de geração do relatório em background
+def gerar_relatorio_background(app, sessao_id):
+    with app.app_context():
+        try:
+            sessao = TestSession.query.get(sessao_id)
+            if not sessao:
+                current_app.logger.error(f"[BACKGROUND] Sessão {sessao_id} não encontrada.")
+                return
+
+            dados = {
+                "full_name": sessao.full_name,
+                "birth_date": sessao.birth_date.strftime("%Y-%m-%d"),
+                "birth_time": sessao.birth_time,
+                "birth_city": sessao.birth_city,
+                "birth_country": sessao.birth_country,
+            }
+
+            current_app.logger.info(f"[BACKGROUND] Gerando relatório para sessão {sessao_id}")
+            resultado = generate_skyai_report_via_ai(dados)
+
+            # Se a IA indicou erro ➜ aborta
+            if resultado.get("erro"):
+                current_app.logger.error(f"[AI ❌] {resultado['erro']}")
+                return
+
+            # Grava somente se o JSON está completo (sun_sign presente)
+            if resultado.get("sun_sign"):
+                sessao.ai_result  = json.dumps(resultado, ensure_ascii=False)
+                sessao.sun_sign   = resultado["sun_sign"]
+                sessao.moon_sign  = resultado["moon_sign"]
+                sessao.ascendant  = resultado["ascendant"]
+                sessao.life_path  = resultado["life_path"]
+                sessao.soul_urge  = resultado["soul_urge"]
+                sessao.expression = resultado["expression"]
+                db.session.commit()
+                current_app.logger.info(f"[AI ✅] Relatório salvo – sessão {sessao_id}")
+            else:
+                # JSON inválido ➜ não salva; mantém sessão sem resultado
+                current_app.logger.warning(f"[AI ⚠️] JSON inválido; relatório ignorado.")
+                db.session.rollback()
+
+        except Exception as e:
+            db.session.rollback()
+            current_app.logger.error(f"[BACKGROUND EXCEPTION] {e}")
 
 # 🔹 Tela para visualizar o relatório
 @user_bp.route("/relatorio")
