@@ -5,22 +5,26 @@ Inclui logging do prompt e controle de erros.
 """
 import os
 import json
+import re                # ← novo
 from datetime import datetime
 import io
 import traceback
+
 from flask import current_app
 from openai import OpenAI
+
 from app.services.astrology_service import get_astrological_data
 from app.services.numerology_service import get_numerology
 
+
 def generate_skyai_prompt(user_data: dict) -> str:
-    full_name     = user_data.get("full_name", "User")
+    full_name      = user_data.get("full_name", "User")
     birth_date_raw = user_data.get("birth_date", "")
     birth_time     = user_data.get("birth_time", "")
     birth_city     = user_data.get("birth_city", "")
     birth_country  = user_data.get("birth_country", "")
 
-    # ── 1. Data de nascimento em ISO e formato de exibição ───────────────────────
+    # ── 1. Data de nascimento ────────────────────────────────────────────────
     try:
         birth_date_obj = datetime.strptime(birth_date_raw, "%Y-%m-%d").date()
     except ValueError:
@@ -29,7 +33,7 @@ def generate_skyai_prompt(user_data: dict) -> str:
     birth_date_iso = birth_date_obj.isoformat()
     display_date   = birth_date_obj.strftime("%m/%d/%Y")
 
-    # ── 2. Astrologia – captura robusta de exceções ──────────────────────────────
+    # ── 2. Astrologia ────────────────────────────────────────────────────────
     try:
         astro = get_astrological_data(
             birth_date_iso,
@@ -41,40 +45,36 @@ def generate_skyai_prompt(user_data: dict) -> str:
         buf = io.StringIO()
         traceback.print_exc(file=buf)
         current_app.logger.error(f"[Astrology ERROR] {e}\n{buf.getvalue()}")
-        raise RuntimeError(
-            "Falha ao calcular signos astrológicos; verifique logs."
-        ) from e
+        raise RuntimeError("Falha ao calcular signos astrológicos; verifique logs.") from e
 
     if astro.get("error"):
         current_app.logger.error(f"[Astrology ERROR] {astro.get('error')}")
         raise RuntimeError("Falha ao calcular signos astrológicos; verifique logs.")
 
-    # ── 3. Signos principais ─────────────────────────────────────────────────────
+    # ── 3. Signos principais ────────────────────────────────────────────────
     positions = astro.get("positions", {})
 
     def fmt_sign(body_key: str, default="None") -> str:
         data = positions.get(body_key)
         return f"{data['sign']} ({data['degree']}°)" if data else default
 
-    sun_sign = fmt_sign("SUN")
+    sun_sign  = fmt_sign("SUN")
     moon_sign = fmt_sign("MOON")
     asc_sign  = fmt_sign("ASC")
 
-    # ── 4. Numerologia ───────────────────────────────────────────────────────────
+    # ── 4. Numerologia ──────────────────────────────────────────────────────
     nume = get_numerology(full_name, birth_date_iso)
     if nume.get("error"):
         current_app.logger.error(f"[Numerology ERROR] {nume.get('error')}")
         raise RuntimeError("Falha ao calcular numerologia; verifique logs.")
 
-    # ── 5. Aspectos astrológicos ─────────────────────────────────────────────────
+    # ── 5. Aspectos astrológicos ────────────────────────────────────────────
     aspects = astro.get("aspects", [])
 
     def find_aspect(b1: str, b2: str) -> str:
         for a in aspects:
-            if (
-                (a["body1"] == b1 and a["body2"] == b2)
-                or (a["body1"] == b2 and a["body2"] == b1)
-            ):
+            if ((a["body1"] == b1 and a["body2"] == b2) or
+                (a["body1"] == b2 and a["body2"] == b1)):
                 return f"{a['aspect']} (orb: {a['orb']}°, angle: {a['angle']}°)"
         return "No significant aspect"
 
@@ -82,13 +82,12 @@ def generate_skyai_prompt(user_data: dict) -> str:
     aspect_moon_asc = find_aspect("MOON", "ASC")
 
     aspectos_detalhados = "\n".join(
-        [
-            f"  - {a['body1']} {a['aspect']} {a['body2']} (orb: {a['orb']}°, angle: {a['angle']}°)"
-            for a in aspects
-        ]
+        f"  - {a['body1']} {a['aspect']} {a['body2']} "
+        f"(orb: {a['orb']}°, angle: {a['angle']}°)"
+        for a in aspects
     )
 
-    # ── 6. Prompt final para a IA ────────────────────────────────────────────────
+    # ── 6. Prompt final para a IA ───────────────────────────────────────────
     preamble = (
         "Use these precomputed values for all interpretations:\n"
         f"- Solar Sign: {sun_sign}\n"
@@ -155,8 +154,8 @@ You must return a JSON object with this structure (no markdown or explanation):
   "texto": "<Markdown formatted full report using ## section headings.>"
 }}
 """
-
     return f"{preamble}\n{body}"
+
 
 def generate_report_via_ai(user_data: dict) -> dict:
     try:
@@ -164,8 +163,8 @@ def generate_report_via_ai(user_data: dict) -> dict:
 
         inst = current_app.instance_path
         os.makedirs(inst, exist_ok=True)
-        log_path = os.path.join(inst, 'prompt_log_skyai.txt')
-        with open(log_path, 'a', encoding='utf-8') as f:
+        log_path = os.path.join(inst, "prompt_log_skyai.txt")
+        with open(log_path, "a", encoding="utf-8") as f:
             f.write(f"\n\n--- {datetime.utcnow().isoformat()} Prompt ---\n")
             f.write(prompt)
             f.write("\n--- End Prompt ---\n")
@@ -179,7 +178,7 @@ def generate_report_via_ai(user_data: dict) -> dict:
             model="gpt-4",
             messages=[
                 {"role": "system", "content": "You are SkyAI, expert in astrology and numerology."},
-                {"role": "user", "content": prompt}
+                {"role": "user", "content": prompt},
             ],
             temperature=0.85,
             max_tokens=2200,
@@ -187,14 +186,24 @@ def generate_report_via_ai(user_data: dict) -> dict:
 
         raw_output = response.choices[0].message.content.strip()
 
-        # ── Novo: registrar a saída bruta da IA ───────────────────────────────────
-        with open(log_path, 'a', encoding='utf-8') as f:
+        # ── Registrar saída bruta ────────────────────────────────────────────
+        with open(log_path, "a", encoding="utf-8") as f:
             f.write("--- RAW OUTPUT ---\n")
             f.write(raw_output + "\n")
             f.write("--- End RAW ---\n")
 
-        result_text = raw_output.replace("json", "").replace("", "").strip()
+        # ── Limpeza: remove cercas ``` e isola o JSON puro ───────────────────
+        clean_output = re.sub(r"```(?:\w+)?\s*|```", "", raw_output).strip()
 
+        if not clean_output.lstrip().startswith("{"):
+            start = clean_output.find("{")
+            end = clean_output.rfind("}")
+            if start != -1 and end != -1 and end > start:
+                clean_output = clean_output[start : end + 1]
+
+        result_text = clean_output
+
+        # ── Parse JSON ───────────────────────────────────────────────────────
         try:
             parsed = json.loads(result_text)
         except json.JSONDecodeError:
