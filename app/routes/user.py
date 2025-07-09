@@ -88,7 +88,7 @@ def processando_relatorio():
 
     # ─────────── Proteção contra loop ───────────
     if not pending:
-        flash("Session expired or no data to process.", "warning")
+        flash("Processing already completed. Redirecting you to your dashboard.", "info")
         return redirect(url_for("auth_views.dashboard"))
 
     try:
@@ -151,8 +151,9 @@ def processando_relatorio():
     except Exception as e:
         db.session.rollback()
         current_app.logger.error(f"[PROCESSANDO ERROR] {e}")
-        flash("Something went wrong generating your report.", "danger")
+        flash("Unexpected error while generating your report. Please try again.", "danger")
         return redirect(url_for("auth_views.dashboard"))
+
     
 # 🔹 Função de geração do relatório em background
 def gerar_relatorio_background(app, sessao_id):
