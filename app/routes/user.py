@@ -88,7 +88,6 @@ def processando_relatorio():
 
     # ─────────── Proteção contra loop ───────────
     if not pending:
-        flash("Processing already completed. Redirecting you to your dashboard.", "info")
         return redirect(url_for("auth_views.dashboard"))
 
     try:
@@ -154,7 +153,6 @@ def processando_relatorio():
         flash("Unexpected error while generating your report. Please try again.", "danger")
         return redirect(url_for("auth_views.dashboard"))
 
-    
 # 🔹 Função de geração do relatório em background
 def gerar_relatorio_background(app, sessao_id):
     with app.app_context():
