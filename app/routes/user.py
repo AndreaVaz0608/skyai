@@ -190,10 +190,9 @@ def gerar_relatorio_background(app, sessao_id):
                 db.session.commit()
                 current_app.logger.info(f"[AI ✅] Relatório salvo – sessão {sessao_id}")
             else:
-                # JSON inválido ➜ não salva; mantém sessão sem resultado
-                current_app.logger.warning(f"[AI ⚠️] JSON inválido; relatório ignorado.")
-                db.session.rollback()
-
+                # IA mandou texto simples ➜ embrulhe em JSON
+                sessao.ai_result = json.dumps({"texto": str(resultado)}, ensure_ascii=False)
+                db.session.commit()
         except Exception as e:
             db.session.rollback()
             current_app.logger.error(f"[BACKGROUND EXCEPTION] {e}")
