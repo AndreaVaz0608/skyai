@@ -32,11 +32,11 @@
     <p style="color: #ccc;">Enter the birth and identity details for both people to receive a complete compatibility reading.</p>
   </div>
 
-  <!-- 🔗 Agora o formulário vai para /pay/checkout -->
-  <form method="POST" action="{{ url_for('payments.create_checkout') }}">
+  <!-- 🔗 O formulário envia direto para /compatibility (POST) -->
+  <form method="POST" action="{{ url_for('user.compatibility') }}">
     <!-- Person 1 -->
     <fieldset style="margin-bottom: 2.5rem;">
-      <legend style="color: #ffdd77; margin-bottom: 1rem;">✨ Person 1</legend>
+      <legend style="color: #ffdd77; margin-bottom: 1rem;">✨ Person&nbsp;1</legend>
 
       <div class="form-group" style="margin-bottom: 1rem;">
         <label for="name_1" style="color: #fff;">Full Name</label>
@@ -66,7 +66,7 @@
 
     <!-- Person 2 -->
     <fieldset style="margin-bottom: 2.5rem;">
-      <legend style="color: #ffdd77; margin-bottom: 1rem;">✨ Person 2</legend>
+      <legend style="color: #ffdd77; margin-bottom: 1rem;">✨ Person&nbsp;2</legend>
 
       <div class="form-group" style="margin-bottom: 1rem;">
         <label for="name_2" style="color: #fff;">Full Name</label>
@@ -95,16 +95,17 @@
     </fieldset>
 
     <button type="submit" class="btn-primary" style="width: 100%; padding: 1rem; border-radius: 12px; font-size: 1.1rem;">
-      💳 Pay & Analyze Compatibility
+      🔮 Generate Compatibility Report
     </button>
 
     <p style="color:#aaa;font-size:.85rem;margin-top:.75rem;text-align:center;">
-      ⚠️ After payment and test completion, no refunds will be issued.
+      Results are delivered instantly after you submit the data.
     </p>
   </form>
 
   <div style="text-align: center; margin-top: 2rem;">
-    <a href="{{ url_for('auth_views.dashboard') }}" class="btn-primary" style="background-color: transparent; border: 2px solid #ffdd77; color: #ffdd77; padding: 0.75rem 1.5rem; border-radius: 10px;">
+    <a href="{{ url_for('auth_views.dashboard') }}" class="btn-primary"
+       style="background-color: transparent; border: 2px solid #ffdd77; color: #ffdd77; padding: 0.75rem 1.5rem; border-radius: 10px;">
       ← Back to Dashboard
     </a>
   </div>
