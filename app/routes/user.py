@@ -425,6 +425,58 @@ def relatorio_pdf():
     response.headers["Content-Disposition"] = f"attachment; filename=skyai_report_{sessao.id}.pdf"
     return response
 
+# ---------------------------------------------------------------------------
+# 🔹 /compatibility/pdf  –  gera PDF do resultado de compatibilidade
+# ---------------------------------------------------------------------------
+@user_bp.route("/compatibility/pdf")
+def compatibility_pdf():
+    if "user_id" not in session:
+        flash("You must be logged in to download the PDF.", "error")
+        return redirect(url_for("auth_views.login_view"))
+
+    user_id   = session["user_id"]
+    sessao_id = request.args.get("match_id")        # usaremos o id do GuruQuestion
+
+    # Recupera o registro salvo na geração do relatório
+    match = (
+        GuruQuestion.query
+        .filter_by(id=sessao_id, user_id=user_id)
+        .first()
+    )
+    if not match:
+        flash("Compatibility result not found.", "warning")
+        return redirect(url_for("auth_views.dashboard"))
+
+    # Separar nomes (estavam no ‘question’)
+    try:
+        title_names = match.question.replace("Compatibility ", "").split(" × ")
+        name_1, name_2 = title_names if len(title_names) == 2 else ("Person 1", "Person 2")
+    except Exception:
+        name_1, name_2 = ("Person 1", "Person 2")
+
+    # Renderiza o MESMO template usado na tela, porém para PDF
+    html = render_template(
+        "compatibility_result.html",
+        result = match.answer,
+        name_1 = name_1,
+        name_2 = name_2,
+        pdf_mode = True                      # flag opcional p/ esconder botões
+    )
+
+    try:
+        pdf_bytes = asyncio.run(html_to_pdf_bytes(html))
+    except Exception as e:
+        current_app.logger.error(f"[PDF COMPAT ERROR] {e}")
+        flash("Error generating PDF. Please try later.", "danger")
+        return redirect(url_for("auth_views.dashboard"))
+
+    response = make_response(pdf_bytes)
+    response.headers["Content-Type"] = "application/pdf"
+    response.headers["Content-Disposition"] = (
+        f"attachment; filename=compatibility_{match.id}.pdf"
+    )
+    return response
+
 @user_bp.route('/select-product', methods=['GET', 'POST'])
 def select_product():
     if 'user_id' not in session:
@@ -556,15 +608,23 @@ PERSON B
 
         result_text = response.choices[0].message.content.strip()
 
-        # ─────────── Marca como usado ───────────
-        user.compatibility_used = True
-        db.session.commit()
+               # ─────────── Salva resultado e marca uso ───────────
+        match = GuruQuestion(
+            user_id = user.id,
+            question = f"Compatibility {name_1} × {name_2}",
+            answer   = result_text
+        )
+        db.session.add(match)
+
+        user.compatibility_used = True      # bloqueia novo teste grátis
+        db.session.commit()                 # grava e gera match.id
 
         return render_template(
             "compatibility_result.html",
-            result=result_text,
-            name_1=name_1,
-            name_2=name_2
+            result   = result_text,
+            name_1   = name_1,
+            name_2   = name_2,
+            match_id = match.id              # ← usado pelo botão PDF
         )
 
     except Exception as e:
