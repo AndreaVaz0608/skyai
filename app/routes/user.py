@@ -73,25 +73,50 @@ def preencher_dados():
     # 👉 Renderiza formulário caso GET
     return render_template('user_data.html')
 
-# app/routes/user.py  –  trecho completo e já corrigido
 @user_bp.route("/processando-relatorio")
 def processando_relatorio():
-    # ─────────── Segurança ───────────
+    # ─── Segurança ────────────────────────────────────────────────
     if "user_id" not in session:
         flash("Please log in to view your report.", "error")
         return redirect(url_for("auth_views.login_view"))
 
     user_id           = session["user_id"]
-    pending           = session.get("pending_data")
+    sessao_id_param   = request.args.get("sessao_id")
     pago              = request.args.get("paid") == "true"
-    stripe_session_id = request.args.get("session_id")        # real id que vem do success_url
+    stripe_session_id = request.args.get("session_id")
 
-    # ─────────── Proteção contra loop ───────────
+    pending = session.get("pending_data")
+
+    # ------------------------------------------------------------------
+    # CENÁRIO A · Já existe sessão criada (refresh/polling)
+    # ------------------------------------------------------------------
+    if not pending and sessao_id_param:
+        sessao = TestSession.query.filter_by(id=sessao_id_param, user_id=user_id).first()
+
+        if not sessao:
+            flash("Session not found.", "warning")
+            return redirect(url_for("auth_views.dashboard"))
+
+        # Ainda processando → permanece na tela de loading
+        if sessao.ai_result is None:
+            return render_template(
+                "carregando.html",
+                sessao_id=sessao.id,
+                pago=pago,
+            )
+
+        # Já pronto → vai direto ao relatório
+        return redirect(url_for("user.gerar_relatorio", sessao_id=sessao.id))
+
+    # ------------------------------------------------------------------
+    # CENÁRIO B · Primeira chamada após pagamento (pending_data presente)
+    # ------------------------------------------------------------------
     if not pending:
+        # Sem dados pendentes e sem sessao_id ⇒ fallback seguro
         return redirect(url_for("auth_views.dashboard"))
 
     try:
-        # ─────────── Confirma / registra pagamento ───────────
+        # 1️⃣ Confirma pagamento  (mantém igual ao seu código)
         if pago:
             pay_q = Payment.query
             if stripe_session_id:
@@ -100,21 +125,11 @@ def processando_relatorio():
                 pay_q = pay_q.filter_by(user_id=user_id)
 
             payment = pay_q.first()
-
-            # ❶  Web-hook ainda não chegou? — avisa o usuário
             if not payment:
-                current_app.logger.warning(
-                    f"[PROCESSANDO] Payment not found (user {user_id}, session {stripe_session_id})"
-                )
                 flash("Payment not confirmed yet. Please wait a few seconds and refresh.", "warning")
-                return redirect(url_for("auth_views.dashboard"))
+                return render_template("carregando.html", sessao_id=None, pago=False)
 
-            # ❷  Já existe = tudo certo
-            current_app.logger.info(
-                f"[PROCESSANDO] Payment OK for user {user_id} (session {stripe_session_id})"
-            )
-
-        # ─────────── Cria TestSession ───────────
+        # 2️⃣ Cria TestSession apenas uma vez
         new_sessao = TestSession(
             user_id       = user_id,
             full_name     = pending["full_name"],
@@ -130,16 +145,12 @@ def processando_relatorio():
         session.pop("pending_data", None)
         session.modified = True
 
-        # ─────────── Geração assíncrona ───────────
+        # 3️⃣ Dispara geração em background
         threading.Thread(
             target=gerar_relatorio_background,
             args=(current_app._get_current_object(), new_sessao.id),
             daemon=True,
         ).start()
-
-        current_app.logger.info(
-            f"[PROCESSANDO] ✔ TestSession {new_sessao.id} criada para user {user_id}"
-        )
 
         return render_template(
             "carregando.html",
