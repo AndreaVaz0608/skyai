@@ -2,21 +2,47 @@
 {% block title %}Compatibility Result • SkyAI{% endblock %}
 
 {% block content %}
-<div class="box-container" style="max-width: 720px; margin: 0 auto; padding: 2rem;">
-  <div style="text-align: center;">
-    <img src="{{ url_for('static', filename='img/logo_skyai.png') }}" alt="SkyAI Logo" style="max-height: 60px; margin-bottom: 1rem;">
-    <h2 style="color: #ffdd77;">💑 Compatibility Result</h2>
-    <p style="color: #ccc;">Between <strong>{{ name_1 }}</strong> and <strong>{{ name_2 }}</strong></p>
+<style>
+  .comp-box{
+    max-width:680px;margin:2rem auto;padding:2rem;background:#06111f;
+    border-radius:18px;color:#fff;line-height:1.7;box-shadow:0 8px 24px rgba(0,0,0,.25);
+  }
+  .comp-box h3{color:#ffdd77;font-size:1.6rem;margin-bottom:.5rem;text-align:center;}
+  .comp-box h4{color:#fce495;margin-top:1.8rem;font-size:1.2rem;}
+  .comp-box p{margin:.6rem 0;}
+  .btn-primary{
+    background:#d4af37;color:#06111f;padding:.85rem 1.4rem;border-radius:10px;
+    font-weight:700;text-decoration:none;display:inline-block;text-align:center;
+    transition:background .25s ease;
+  }
+  .btn-primary:hover{background:#c39d2f}
+  .btn-container{display:flex;flex-direction:column;gap:1rem;margin-top:2rem;align-items:center;}
+</style>
+
+<div class="comp-box">
+  <div style="text-align:center;margin-bottom:2rem;">
+    <img src="{{ url_for('static', filename='img/logo_skyai.png') }}" alt="SkyAI Logo" style="max-height:60px;">
+    <h3>💘 Compatibility Result</h3>
+    <p style="font-size:.95rem;color:#ddd;">
+      Between <strong>{{ name_1 }}</strong> and <strong>{{ name_2 }}</strong>
+    </p>
   </div>
 
-  <div style="margin-top: 2rem; background-color: rgba(255,255,255,0.05); padding: 1.5rem; border-radius: 12px; line-height: 1.6; color: #eee;">
-    {{ result | safe }}
-  </div>
+  {# ───── Renderiza o texto vindo da IA ───── #}
+  {% set secoes = result.split('\n') %}
+  {% for linha in secoes %}
+    {% set l = linha.strip() %}
+    {% if l.startswith('💞') or l.startswith('🌞') or l.startswith('🌙')
+          or l.startswith('⬆️') or l.startswith('🔢')
+          or l.startswith('❤️') or l.startswith('⚠️') or l.startswith('✨') %}
+      <h4>{{ l }}</h4>
+    {% elif l %}
+      <p>{{ l }}</p>
+    {% endif %}
+  {% endfor %}
 
-  <div style="text-align: center; margin-top: 2rem;">
-    <a href="{{ url_for('auth_views.dashboard') }}" class="btn-primary" style="padding: 0.75rem 1.5rem; border-radius: 10px;">
-      ← Back to Dashboard
-    </a>
+  <div class="btn-container">
+    <a href="{{ url_for('auth_views.dashboard') }}" class="btn-primary">← Back to Dashboard</a>
   </div>
 </div>
 {% endblock %}
