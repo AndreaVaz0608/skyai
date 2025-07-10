@@ -508,11 +508,42 @@ def compatibility():
         client = OpenAI(api_key=os.getenv("OPENAI_API_KEY"))
 
         prompt = f"""
-You are Guru SkyAI, an expert in compatibility, astrology, and numerology.
-...
-( prompt mantido igual )
-...
+You are Guru SkyAI, an expert in astrological and numerological compatibility.
+Respond in the same language that you are asked.  **Do NOT greet** the user; deliver ONLY the report.
+
+Return the analysis with the following emoji-titled sections:
+
+💞 Visão Geral  
+🌞 Dinâmica dos Signos Solares  
+🌙 Conexão Emocional (Lua)  
+⬆️ Energia dos Ascendentes  
+🔢 Ressonância Numerológica  
+❤️ Pontos Fortes do Casal  
+⚠️ Desafios Potenciais  
+✨ Dicas Práticas
+
+PERSON A  
+• Nome………..: {name_1}  
+• Sol………..…: {astro_1['positions']['SUN']['sign']}  
+• Lua………..…: {astro_1['positions']['MOON']['sign']}  
+• Ascendente…: {astro_1['positions']['ASC']['sign']}  
+• Caminho de Vida: {num_1['life_path']}  
+• Motivação da Alma: {num_1['soul_urge']}  
+• Expressão: {num_1['expression']}
+
+PERSON B  
+• Nome………..: {name_2}  
+• Sol………..…: {astro_2['positions']['SUN']['sign']}  
+• Lua………..…: {astro_2['positions']['MOON']['sign']}  
+• Ascendente…: {astro_2['positions']['ASC']['sign']}  
+• Caminho de Vida: {num_2['life_path']}  
+• Motivação da Alma: {num_2['soul_urge']}  
+• Expressão: {num_2['expression']}
+
+→ Use entre 400 e 600 palavras.
+→ Seja direto, claro e fundamentado nos dados acima.
 """
+
         response = client.chat.completions.create(
             model="gpt-4o-mini",
             messages=[
