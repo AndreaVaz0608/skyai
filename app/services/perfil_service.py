@@ -195,6 +195,23 @@ def generate_report_via_ai(user_data: dict) -> dict:
         # ── Limpeza: remove cercas ``` e isola o JSON puro ───────────────────
         clean_output = re.sub(r"```(?:\w+)?\s*|```", "", raw_output).strip()
 
+        if '"texto"' in clean_output:
+            def _escape_block(match):
+                # match.group(2) contém o texto original
+                body = match.group(2)
+                body = body.replace('\\', '\\\\')   # escapa barras
+                body = body.replace('"', r'\"')     # escapa aspas
+                body = body.replace('\n', r'\n')    # escapa quebras de linha
+                return f'{match.group(1)}{body}{match.group(3)}'
+
+            # ("texto"\s*:\s*")  (conteúdo multi-linha)  (" antes de , } ou \n)
+            clean_output = re.sub(
+                r'("texto"\s*:\s*")([\s\S]*?)("(?=\s*[},]))',
+                _escape_block,
+                clean_output,
+                flags=re.S
+            )
+
         if not clean_output.lstrip().startswith("{"):
             start = clean_output.find("{")
             end = clean_output.rfind("}")
