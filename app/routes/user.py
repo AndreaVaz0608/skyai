@@ -386,10 +386,19 @@ def relatorio_pdf():
     )
     return response
 
-    # ─── Constrói o MESMO dicionário usado na tela bonita ────────────────────
-    ai_data = json.loads(sessao.ai_result) if isinstance(sessao.ai_result, str) else sessao.ai_result
+    # ─── Converte/normaliza o campo ai_result ───────────────────────────
+    if isinstance(sessao.ai_result, str):
+        try:
+            ai_data = json.loads(sessao.ai_result)
+        except Exception as e:
+            current_app.logger.error(f"[RELATORIO JSON ERROR] {e}")
+            ai_data = {}
+    elif isinstance(sessao.ai_result, dict):
+        ai_data = sessao.ai_result
+    else:
+        ai_data = {}
 
-    # 🔹 converte '\n' literais em quebras reais
+    # 🔹 NOVO: troca '\\n' literais por quebras reais
     if isinstance(ai_data.get("texto"), str):
         ai_data["texto"] = ai_data["texto"].replace("\\n", "\n")
 
@@ -677,8 +686,9 @@ def ask_guru():
 
     # ─────────── Monta prompt para OpenAI ───────────
     prompt = f"""
-You are Guru SkyAI, an objective advisor who uses the client's own natal chart
-and numerology to give specific guidance – no mysticism or metaphors.
+You are Guru SkyAI — a pragmatic advisor who must ground EVERY answer in the user's
+own natal data and, if available, the most recent **12-month forecast** delivered
+by SkyAI.
 
 User QUESTION:
 \"\"\"{question}\"\"\"
@@ -691,10 +701,12 @@ User CONTEXT:
 - Soul-Urge number: {soul}
 - Expression number: {expr}
 
-RULES:
-• Be clear, practical and direct.
-• Reference only the info above (do not invent data).
-• Conclude with a concrete recommendation.
+RULES
+1. Begin with a one-sentence direct answer.
+2. Then explain **why** — cite at least one natal aspect OR the 12-month forecast
+   (e.g. “Jupiter square Saturn in Feb 2026”).
+3. End with a concrete recommendation the user can apply within 7 days.
+4. No greetings, no fluff.
 """
 
     try:

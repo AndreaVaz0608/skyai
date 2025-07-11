@@ -82,8 +82,10 @@
         <p style="color:#fcd5ce;">⚠️ You used all 4 Guru questions. Buy again to reset.</p>
       {% else %}
         <form action="{{ url_for('user.ask_guru') }}" method="post">
-          <textarea name="question" required placeholder="Type your question here..."
-                    style="width:100%;height:120px;border-radius:10px;padding:1rem;font-size:1rem;"></textarea>
+          <textarea name="question" required
+          style="width:100%;height:120px;border-radius:10px;
+                 padding:1rem;font-size:1rem;
+                 resize:none;box-sizing:border-box;"></textarea>
           <button type="submit" class="btn-primary" style="width:100%;margin-top:1rem;">
             🔮 Ask the Guru
           </button>
@@ -95,24 +97,44 @@
 
   <!-- ▸ Respostas Recentes do Guru --------------------------------------- -->
   {% if guru_answers %}
-    <div class="section-card"
-         style="background:rgba(255,255,255,0.04);padding:1.5rem;border-radius:12px;margin-top:2rem;">
-      <h3 style="color:#FCE495;margin-bottom:1rem;">🧙‍♀️ Recent Answers from Guru SkyAI</h3>
-      {% for q in guru_answers %}
-        <div style="margin-bottom:2rem;padding-bottom:1.5rem;border-bottom:1px solid rgba(255,255,255,0.1);">
-          <p style="color:#ddd;"><strong>📝 Question:</strong> {{ q.question }}</p>
-          {% if q.answer %}
-            <p style="color:#eee;margin-top:.5rem;"><strong>🔮 Answer:</strong> {{ q.answer }}</p>
-          {% else %}
-            <p style="color:#aaa;margin-top:.5rem;">⏳ Answer pending…</p>
-          {% endif %}
-          <p style="font-size:.85rem;color:#999;margin-top:.75rem;">
-            <em>{{ q.created_at.strftime('%b %d, %Y %H:%M') }}</em>
-          </p>
-        </div>
-      {% endfor %}
-    </div>
-  {% endif %}
+  <div class="section-card"
+       style="background:rgba(255,255,255,0.04);padding:1.5rem;border-radius:12px;margin-top:2rem;">
+    <h3 style="color:#FCE495;margin-bottom:1rem;">🧙‍♀️ Recent Answers from Guru SkyAI</h3>
+
+    {% for q in guru_answers %}
+      <div style="margin-bottom:2rem;padding-bottom:1.5rem;
+                  border-bottom:1px solid rgba(255,255,255,0.1);">
+
+        <p style="color:#ddd;"><strong>📝 Question:</strong> {{ q.question }}</p>
+
+        {% if q.answer %}
+          <div style="color:#eee;margin-top:.5rem;font-size:1rem;line-height:1.6;">
+            <strong>🔮 Answer:</strong><br>
+
+            {# --- break answer into headings & paragraphs --- #}
+            {% set lines = q.answer.split('\n') %}
+            {% for line in lines %}
+              {% set l = line.strip() %}
+              {% if l.startswith('##') %}
+                <h4 style="color:#ffd96a;margin:1.1rem 0 .4rem;">
+                  {{ l[2:]|trim }}
+                </h4>
+              {% elif l %}
+                <p style="margin:.35rem 0;">{{ l }}</p>
+              {% endif %}
+            {% endfor %}
+          </div>
+        {% else %}
+          <p style="color:#aaa;margin-top:.5rem;">⏳ Answer pending…</p>
+        {% endif %}
+
+        <p style="font-size:.85rem;color:#999;margin-top:.75rem;">
+          <em>{{ q.created_at.strftime('%b %d, %Y %H:%M') }}</em>
+        </p>
+      </div>
+    {% endfor %}
+  </div>
+{% endif %}
 
 </div>
 {% endblock %}
