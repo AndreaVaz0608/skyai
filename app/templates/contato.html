@@ -8,6 +8,14 @@
     <h2>Contact SkyAI</h2>
   </div>
 
+  {% with messages = get_flashed_messages(with_categories=true) %}
+    {% if messages %}
+      {% for cat, msg in messages %}
+        <p class="flash {{ cat }}">{{ msg }}</p>
+      {% endfor %}
+    {% endif %}
+  {% endwith %}
+
   {% if success %}
     <p class="flash success">✅ Message sent successfully! We’ll respond shortly.</p>
   {% endif %}
@@ -15,7 +23,8 @@
   <form method="POST">
     <input type="text" name="name" placeholder="Your name" required>
     <input type="email" name="email" placeholder="Your email" required>
-    <textarea name="message" placeholder="Type your message..." required style="min-height: 120px; resize: vertical;"></textarea>
+    <textarea name="message" placeholder="Type your message…" required
+              style="min-height:120px;resize:none;box-sizing:border-box;"></textarea>
     <button type="submit">Send Message</button>
   </form>
 </div>

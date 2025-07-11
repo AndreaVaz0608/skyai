@@ -1,81 +1,80 @@
 # app/services/email.py
-
 from flask_mail import Message
 from flask import render_template, current_app
 from app.main import mail
 
-# 🔹 Email de boas-vindas
+
+def _send_message(msg: Message):
+    """
+    Envia a mensagem de maneira segura em uma única conexão SMTP.
+    Loga erros de autenticação ou configuração ausente.
+    """
+    try:
+        smtp_user = current_app.config.get("MAIL_USERNAME")
+        smtp_pass = current_app.config.get("MAIL_PASSWORD")
+        if not smtp_user or not smtp_pass:
+            raise RuntimeError("MAIL_USERNAME or MAIL_PASSWORD not set")
+
+        with mail.connect() as conn:
+            conn.send(msg)
+        current_app.logger.info(f"✅ Email '{msg.subject}' sent to {msg.recipients}")
+
+    except Exception as e:
+        current_app.logger.error(f"❌ Email send failure ({msg.subject}): {e}")
+
+
+# ------------------------------------------------------------------
+# 1) Welcome e-mail  –– agora com BCC
+# ------------------------------------------------------------------
 def enviar_email_boas_vindas(user):
-    try:
-        msg = Message(
-            subject="🌟 Welcome to SkyAI - Your Journey to the Stars Begins!",
-            recipients=[user.email],
-            sender=current_app.config['MAIL_DEFAULT_SENDER']
-        )
-        # ⬇️ Usa template dentro de 'templates/emails/welcome.html'
-        msg.html = render_template("emails/welcome.html", nome=user.name)
-        mail.send(msg)
-        current_app.logger.info(f"✅ Welcome email sent to {user.email}")
-    except Exception as e:
-        current_app.logger.error(f"❌ Error sending welcome email to {user.email}: {e}")
+    bcc_addr = current_app.config.get("MAIL_BCC")        # e.g. admin@skyai.digital
+    msg = Message(
+        subject="🌟 Welcome to SkyAI – Your Cosmic Journey Begins!",
+        recipients=[user.email],
+        sender=current_app.config["MAIL_DEFAULT_SENDER"],
+        bcc=[bcc_addr] if bcc_addr else None,
+    )
+    msg.html = render_template("emails/welcome.html", nome=user.name)
+    _send_message(msg)
 
 
-# 🔹 Email avisando que o Relatório Astral está pronto
+# ------------------------------------------------------------------
+# 2) Report-ready e-mail
+# ------------------------------------------------------------------
 def enviar_email_relatorio(user, sessao_id):
-    try:
-        # ✅ Garante domínio atualizado
-        link_relatorio = f"https://skyai.digital/relatorio?sessao_id={sessao_id}"
+    link = f"https://skyai.digital/relatorio?sessao_id={sessao_id}"
 
-        msg = Message(
-            subject="🌌 Your SkyAI Astrological & Numerological Report is Ready!",
-            recipients=[user.email],
-            sender=current_app.config['MAIL_DEFAULT_SENDER']
-        )
-
-        msg.html = render_template(
-            "emails/relatorio_astral.html",
-            nome=user.name,
-            link=link_relatorio
-        )
-
-        mail.send(msg)
-        current_app.logger.info(f"✅ Report email sent to {user.email}")
-    except Exception as e:
-        current_app.logger.error(f"❌ Error sending report email to {user.email}: {e}")
+    msg = Message(
+        subject="🌌 Your SkyAI Astrological & Numerological Report is Ready!",
+        recipients=[user.email],
+        sender=current_app.config["MAIL_DEFAULT_SENDER"],
+    )
+    # se quiser BCC também aqui, adicione bcc=[bcc_addr] no construtor acima
+    msg.html = render_template(
+        "emails/relatorio_astral.html",
+        nome=user.name,
+        link=link,
+        sun_sign=user.sun_sign,
+        moon_sign=user.moon_sign,
+        ascendant=user.ascendant,
+        life_path=user.life_path,
+    )
+    _send_message(msg)
 
 
-# 🔹 Email de recuperação de senha
+# ------------------------------------------------------------------
+# 3) Password-recovery e-mail
+# ------------------------------------------------------------------
 def send_recovery_email(recipient_email, reset_token):
-    try:
-        reset_link = f"https://skyai.digital/reset-password?token={reset_token}"
+    reset_link = f"https://skyai.digital/reset-password?token={reset_token}"
 
-        msg = Message(
-            subject="🔒 Password Recovery Instructions • SkyAI",
-            recipients=[recipient_email],
-            sender=current_app.config['MAIL_DEFAULT_SENDER']
-        )
-
-        # ✅ Usa HTML mais robusto, com charset UTF-8
-        msg.html = f"""
-        <html>
-        <body style="font-family: Arial, sans-serif; color: #333;">
-            <h2>Hello!</h2>
-            <p>You requested to reset your password for your SkyAI account.</p>
-            <p>Click the link below to set a new password:</p>
-            <p>
-                <a href="{reset_link}" style="display:inline-block; background:#4A90E2; color:#fff; 
-                padding:10px 20px; border-radius:5px; text-decoration:none;">
-                Reset My Password
-                </a>
-            </p>
-            <br>
-            <p>If you did not request a password reset, please ignore this message.</p>
-            <p>Thank you,<br>The SkyAI Team 🌌</p>
-        </body>
-        </html>
-        """
-
-        mail.send(msg)
-        current_app.logger.info(f"✅ Recovery email sent to {recipient_email}")
-    except Exception as e:
-        current_app.logger.error(f"❌ Error sending recovery email to {recipient_email}: {e}")
+    msg = Message(
+        subject="🔒 Password Recovery Instructions • SkyAI",
+        recipients=[recipient_email],
+        sender=current_app.config["MAIL_DEFAULT_SENDER"],
+    )
+    msg.html = render_template(
+        "emails/recovery.html",
+        link=reset_link,
+    )
+    _send_message(msg)
