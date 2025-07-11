@@ -389,6 +389,10 @@ def relatorio_pdf():
     # ─── Constrói o MESMO dicionário usado na tela bonita ────────────────────
     ai_data = json.loads(sessao.ai_result) if isinstance(sessao.ai_result, str) else sessao.ai_result
 
+    # 🔹 converte '\n' literais em quebras reais
+    if isinstance(ai_data.get("texto"), str):
+        ai_data["texto"] = ai_data["texto"].replace("\\n", "\n")
+
     resultado_dict = {
         "nome"        : sessao.full_name,
         "birth_date"  : sessao.birth_date.strftime("%d/%m/%Y") if sessao.birth_date else None,
