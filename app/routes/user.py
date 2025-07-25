@@ -18,6 +18,8 @@ from app.services.astrology_service import get_astrological_signs
 from app.services.numerology_service import get_numerology
 from app.models import Payment
 
+import re
+
 # (opcional) import OpenAI somente dentro das funções que usam
 
 # ── CONFIGURAÇÕES ──────────────────────────────────────────────────────
@@ -212,7 +214,6 @@ def gerar_relatorio_background(app, sessao_id):
 # 🔹 Tela para visualizar o relatório
 @user_bp.route("/relatorio")
 def gerar_relatorio():
-
     # ─── Permissão ──────────────────────────────────────────────────────
     if "user_id" not in session:
         flash("Please log in to view the report.", "error")
@@ -235,7 +236,7 @@ def gerar_relatorio():
         flash("No session found.", "warning")
         return redirect(url_for("user.preencher_dados"))
 
-    # Ainda não terminou
+    # Relatório ainda não finalizado?
     if not sessao.ai_result:
         flash("Report generation is still in progress.", "warning")
         return redirect(url_for("user.processando_relatorio", sessao_id=sessao.id))
@@ -243,16 +244,21 @@ def gerar_relatorio():
     # ─── Converte/normaliza o campo ai_result ───────────────────────────
     if isinstance(sessao.ai_result, str):
         try:
-            ai_data = json.loads(sessao.ai_result)            # JSON válido
+            ai_data = json.loads(sessao.ai_result)  # JSON válido
         except Exception as e:
             current_app.logger.error(f"[RELATORIO JSON ERROR] {e}")
-            ai_data = {}                                      # texto bruto
+            ai_data = {}                            # texto bruto
     elif isinstance(sessao.ai_result, dict):
-        ai_data = sessao.ai_result                            # já é dict
+        ai_data = sessao.ai_result                  # já é dict
     else:
         ai_data = {}
 
-    # Se não veio JSON OU não há texto ⇒ exibe página “bruta”
+    # 🔹 Limpeza das quebras de linha escapadas
+    if isinstance(ai_data.get("texto"), str):
+        # converte \n, \\n, \\\\n … em quebras reais
+        ai_data["texto"] = re.sub(r'(?:\\)+n', '\n', ai_data["texto"])
+
+    # ─── Fallback: se continuamos SEM texto estruturado ────────────────
     if not ai_data.get("texto"):
         texto_fallback = (
             sessao.ai_result
@@ -261,9 +267,9 @@ def gerar_relatorio():
         )
         return render_template(
             "relatorio_bruto.html",
-            nome   = user_name,
-            texto  = texto_fallback,
-            sessao_id = sessao.id,
+            nome=user_name,
+            texto=texto_fallback,
+            sessao_id=sessao.id,
         )
 
     # ─── Monta dicionário final para o template bonito ──────────────────
@@ -285,9 +291,9 @@ def gerar_relatorio():
     # ─── Renderiza a versão formatada ───────────────────────────────────
     return render_template(
         "relatorio.html",
-        nome      = user_name,
-        resultado = resultado_dict,
-        sessao_id = sessao.id,
+        nome=user_name,
+        resultado=resultado_dict,
+        sessao_id=sessao.id,
     )
 
 # ---------------------------------------------------------------------------
@@ -324,6 +330,9 @@ async def html_to_pdf_bytes(html: str) -> bytes:
 # ---------------------------------------------------------------------------
 # 🔹 Rota — /relatorio/pdf (mantém o restante igual)
 # ---------------------------------------------------------------------------
+# ---------------------------------------------------------------------------
+# 🔹 Rota — /relatorio/pdf  (gera PDF com o MESMO conteúdo já tratado)
+# ---------------------------------------------------------------------------
 @user_bp.route("/relatorio/pdf")
 def relatorio_pdf():
     if "user_id" not in session:
@@ -333,12 +342,13 @@ def relatorio_pdf():
     user_id   = session["user_id"]
     sessao_id = request.args.get("sessao_id")
 
+    # ─── Recupera a sessão escolhida (ou a mais recente) ────────────────────
     sessao = (
         TestSession.query.filter_by(id=sessao_id, user_id=user_id).first()
-        if sessao_id else
-        TestSession.query.filter_by(user_id=user_id)
-                         .order_by(TestSession.created_at.desc())
-                         .first()
+        if sessao_id
+        else TestSession.query.filter_by(user_id=user_id)
+                              .order_by(TestSession.created_at.desc())
+                              .first()
     )
     if not sessao:
         flash("No session found to generate the PDF.", "warning")
@@ -348,60 +358,23 @@ def relatorio_pdf():
         flash("Report is still being generated. Try again soon.", "warning")
         return redirect(url_for("user.processando_relatorio", sessao_id=sessao.id))
 
-    # constrói o dicionário e renderiza o HTML exatamente como antes ...
-    ai_data = json.loads(sessao.ai_result) if isinstance(sessao.ai_result, str) else sessao.ai_result
-    resultado_dict = {
-        "nome": sessao.full_name,
-        "birth_date": sessao.birth_date.strftime("%d/%m/%Y") if sessao.birth_date else None,
-        "birth_time": sessao.birth_time,
-        "birth_city": sessao.birth_city,
-        "birth_country": sessao.birth_country,
-        "sun_sign":   ai_data.get("sun_sign",   sessao.sun_sign),
-        "moon_sign":  ai_data.get("moon_sign",  sessao.moon_sign),
-        "ascendant":  ai_data.get("ascendant",  sessao.ascendant),
-        "life_path":  ai_data.get("life_path",  sessao.life_path),
-        "soul_urge":  ai_data.get("soul_urge",  sessao.soul_urge),
-        "expression": ai_data.get("expression", sessao.expression),
-        "texto":      ai_data.get("texto"),
-    }
-
-    html = render_template(
-        "relatorio.html",
-        nome=session.get("user_name", "User"),
-        resultado=resultado_dict,
-        sessao_id=sessao.id,
-    )
-
-    try:
-        pdf_bytes = asyncio.run(html_to_pdf_bytes(html))
-    except Exception as e:
-        current_app.logger.error(f"[PDF GENERATION ERROR] {e}")
-        flash("Error generating PDF. Please try later.", "danger")
-        return redirect(url_for("user.gerar_relatorio", sessao_id=sessao.id))
-
-    response = make_response(pdf_bytes)
-    response.headers["Content-Type"] = "application/pdf"
-    response.headers["Content-Disposition"] = (
-        f"attachment; filename=skyai_report_{sessao.id}.pdf"
-    )
-    return response
-
     # ─── Converte/normaliza o campo ai_result ───────────────────────────
     if isinstance(sessao.ai_result, str):
         try:
-            ai_data = json.loads(sessao.ai_result)
+            ai_data = json.loads(sessao.ai_result)          # JSON válido
         except Exception as e:
             current_app.logger.error(f"[RELATORIO JSON ERROR] {e}")
-            ai_data = {}
+            ai_data = {}                                    # texto bruto
     elif isinstance(sessao.ai_result, dict):
         ai_data = sessao.ai_result
     else:
         ai_data = {}
 
-    # 🔹 NOVO: troca '\\n' literais por quebras reais
+    # 🔹 Limpa quebras de linha escapadas
     if isinstance(ai_data.get("texto"), str):
-        ai_data["texto"] = ai_data["texto"].replace("\\n", "\n")
+        ai_data["texto"] = re.sub(r'(?:\\)+n', '\n', ai_data["texto"])
 
+    # ─── Monta dicionário final (mesma estrutura da view HTML) ───────────
     resultado_dict = {
         "nome"        : sessao.full_name,
         "birth_date"  : sessao.birth_date.strftime("%d/%m/%Y") if sessao.birth_date else None,
@@ -417,12 +390,13 @@ def relatorio_pdf():
         "texto"       : ai_data.get("texto"),
     }
 
-    # ─── Renderiza o HTML em string e converte em PDF ─────────────────────────
+    # ─── Gera HTML e converte em PDF ─────────────────────────────────────
     html = render_template(
         "relatorio.html",
         nome=session.get("user_name", "User"),
         resultado=resultado_dict,
         sessao_id=sessao.id,
+        pdf_mode=True         # se o template usar flag para ocultar botões
     )
 
     try:
@@ -432,10 +406,12 @@ def relatorio_pdf():
         flash("Error generating PDF. Please try later.", "danger")
         return redirect(url_for("user.gerar_relatorio", sessao_id=sessao.id))
 
-    # ─── Resposta: devolve o arquivo ao usuário ───────────────────────────────
+    # ─── Envia arquivo ao usuário ───────────────────────────────────────
     response = make_response(pdf_bytes)
-    response.headers["Content-Type"] = "application/pdf"
-    response.headers["Content-Disposition"] = f"attachment; filename=skyai_report_{sessao.id}.pdf"
+    response.headers["Content-Type"]        = "application/pdf"
+    response.headers["Content-Disposition"] = (
+        f"attachment; filename=skyai_report_{sessao.id}.pdf"
+    )
     return response
 
 # ---------------------------------------------------------------------------
