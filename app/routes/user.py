@@ -20,6 +20,8 @@ from app.models import Payment
 
 import re
 
+current_year = datetime.utcnow().year       # ← defina ANTES do prompt
+
 # (opcional) import OpenAI somente dentro das funções que usam
 
 # ── CONFIGURAÇÕES ──────────────────────────────────────────────────────
@@ -552,37 +554,38 @@ def compatibility():
 You are Guru SkyAI, an expert in astrological and numerological compatibility.
 Respond in the same language that you are asked.  **Do NOT greet** the user; deliver ONLY the report.
 
-Return the analysis with the following emoji-titled sections:
+Return the analysis with the following emoji-titled sections (present/future focus only):
 
-💞 Visão Geral  
-🌞 Dinâmica dos Signos Solares  
-🌙 Conexão Emocional (Lua)  
-⬆️ Energia dos Ascendentes  
-🔢 Ressonância Numerológica  
-❤️ Pontos Fortes do Casal  
-⚠️ Desafios Potenciais  
-✨ Dicas Práticas
+💞 Overview  
+🌞 Sun‑Sign Dynamics  
+🌙 Emotional Connection (Moon)  
+⬆️ Rising‑Sign Energy  
+🔢 Numerological Resonance  
+❤️ Relationship Strengths  
+⚠️ Potential Challenges  
+✨ Practical Tips  
 
 PERSON A  
-• Nome………..: {name_1}  
-• Sol………..…: {astro_1['positions']['SUN']['sign']}  
-• Lua………..…: {astro_1['positions']['MOON']['sign']}  
-• Ascendente…: {astro_1['positions']['ASC']['sign']}  
-• Caminho de Vida: {num_1['life_path']}  
-• Motivação da Alma: {num_1['soul_urge']}  
-• Expressão: {num_1['expression']}
+• Name………..: {name_1}  
+• Sun………..…: {astro_1['positions']['SUN']['sign']}  
+• Moon………..…: {astro_1['positions']['MOON']['sign']}  
+• Rising…: {astro_1['positions']['ASC']['sign']}  
+• Life‑Path Number: {num_1['life_path']}  
+• Soul‑Urge Number: {num_1['soul_urge']}  
+• Expression Number: {num_1['expression']}
 
 PERSON B  
-• Nome………..: {name_2}  
-• Sol………..…: {astro_2['positions']['SUN']['sign']}  
-• Lua………..…: {astro_2['positions']['MOON']['sign']}  
-• Ascendente…: {astro_2['positions']['ASC']['sign']}  
-• Caminho de Vida: {num_2['life_path']}  
-• Motivação da Alma: {num_2['soul_urge']}  
-• Expressão: {num_2['expression']}
+• Name………..: {name_2}  
+• Sun………..…: {astro_2['positions']['SUN']['sign']}  
+• Moon………..…: {astro_2['positions']['MOON']['sign']}  
+• Rising…: {astro_2['positions']['ASC']['sign']}  
+• Life‑Path Number: {num_2['life_path']}  
+• Soul‑Urge Number: {num_2['soul_urge']}  
+• Expression Number: {num_2['expression']}
 
-→ Use entre 400 e 600 palavras.
-→ Seja direto, claro e fundamentado nos dados acima.
+Write 400–600 words.  
+→ Be direct, clear, and fully grounded in the data above.  
+→ Discuss only present tendencies and future potentials—no past‑tense predictions unless explicitly asked.
 """
 
         response = client.chat.completions.create(
@@ -665,6 +668,10 @@ def ask_guru():
 You are Guru SkyAI — a pragmatic advisor who must ground EVERY answer in the user's
 own natal data and, if available, the most recent **12-month forecast** delivered
 by SkyAI.
+
+Current year: {current_year}.  
+✦ Never reference calendar years *earlier* than {current_year} unless the user explicitly asks.  
+✦ When you mention future periods, be explicit: e.g. “Feb–Mar {current_year + 1}”.
 
 User QUESTION:
 \"\"\"{question}\"\"\"
