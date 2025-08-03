@@ -99,6 +99,20 @@
     align-items: center;
     margin-top: 2rem;
   }
+
+  .plan-30dias {
+    background-color: #fef3c7;
+    color: #4b2e00;
+    padding: 1.8rem;
+    border-radius: 12px;
+    margin-top: 2rem;
+    font-weight: 500;
+    box-shadow: 0 4px 10px rgba(0,0,0,0.1);
+    line-height: 1.8;
+  }
+  .plan-30dias h4 {
+    color: #b45309;
+  }
 </style>
 
 <div class="astro-box">
@@ -128,15 +142,24 @@
     {% for bloco in blocos %}
       {% set texto = bloco.strip() %}
       {% if texto %}
-        <div class="ai-summary-item" style="margin-bottom: 1.5rem;">
-          {% set partes = texto.split(':', 1) %}
-          {% if partes|length > 1 and partes[0]|length < 70 %}
-            <h4>{{ partes[0]|trim }}</h4>
-            <p>{{ partes[1]|trim }}</p>
-          {% else %}
-            <p>{{ texto }}</p>
-          {% endif %}
-        </div>
+        {% set partes = texto.split(':', 1) %}
+        {% set titulo = partes[0]|trim %}
+        {% set conteudo = partes[1]|trim if partes|length > 1 else texto %}
+        {% if '30-Day Action Plan' in titulo %}
+          <div class="plan-30dias">
+            <h4>{{ titulo }}</h4>
+            <p>{{ conteudo }}</p>
+          </div>
+        {% else %}
+          <div class="ai-summary-item" style="margin-bottom: 1.5rem;">
+            {% if partes|length > 1 and titulo|length < 70 %}
+              <h4>{{ titulo }}</h4>
+              <p>{{ conteudo }}</p>
+            {% else %}
+              <p>{{ texto }}</p>
+            {% endif %}
+          </div>
+        {% endif %}
       {% endif %}
     {% endfor %}
   </div>
@@ -155,7 +178,7 @@
 
   <div class="btn-container">
     <a href="{{ url_for('user.relatorio_pdf', sessao_id=sessao_id) }}" class="btn-primary" target="_blank">
-      📥 Download Astral Report (PDF)
+      📅 Download Astral Report (PDF)
     </a>
 
     <a href="{{ url_for('auth_views.dashboard') }}" class="btn-primary">
