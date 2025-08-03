@@ -16,7 +16,6 @@ from openai import OpenAI
 from app.services.astrology_service import get_astrological_data
 from app.services.numerology_service import get_numerology
 
-
 def generate_skyai_prompt(user_data: dict) -> str:
     full_name      = user_data.get("full_name", "User")
     birth_date_raw = user_data.get("birth_date", "")
@@ -32,6 +31,12 @@ def generate_skyai_prompt(user_data: dict) -> str:
 
     birth_date_iso = birth_date_obj.isoformat()
     display_date   = birth_date_obj.strftime("%m/%d/%Y")
+
+    # ── 1.1 Data atual para referência dinâmica no forecast ──────────────────
+    today = datetime.today()
+    current_month = today.strftime("%B")
+    current_year = today.strftime("%Y")
+    current_date_text = f"{current_month} {current_year}"
 
     # ── 2. Astrologia ────────────────────────────────────────────────────────
     try:
@@ -108,6 +113,11 @@ Generate a deeply PERSONAL, actionable report for {full_name},
 born on {display_date} at {birth_time} in {birth_city}, {birth_country}.
 Base every insight ONLY on the pre-computed values above.
 
+• Forecasts must include dates ONLY from the present onward (today = {current_date_text}).  
+• DO NOT include any references to past years.  
+• Dates should be monthly or quarterly, e.g., “October 2025”, “Q4 2025”, or “early 2026”.  
+• All time references must be helpful and relevant to real decision-making.
+
 💡 STYLE
 • Motivating, jargon-free language.  
 • 2–4 short paragraphs per section, blank line between paragraphs.  
@@ -122,7 +132,16 @@ Base every insight ONLY on the pre-computed values above.
 4. ## 💖 Relationships & Emotions  
 5. ## 🎯 Career & Purpose  
 6. ## 🔮 12-Month Outlook  
-7. ## ✨ 30-Day Action Plan  
+7. ## ✨ Exclusive 30-Day Action Plan — Your Personalized Cosmic Prescription
+
+This is the most valuable section.  
+Provide a clear, motivating 30-day roadmap with 2–4 simple, powerful actions.  
+Use short sentences. Be specific and practical.  
+Start each suggestion on a new line, and use imperative tone (e.g., “Start your day with...”, “Avoid...”, “Track...”)
+
+Close this section with one inspiring line that reminds the user of their power.
+
+This must be the most actionable and easy-to-remember part of the report.
 
 ➡️ OUTPUT FORMAT  
 Return **only** a pure JSON object — no Markdown fences, no extra text.  
