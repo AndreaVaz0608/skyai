@@ -78,7 +78,7 @@
         {% set titulo = partes[0]|trim %}
         {% set conteudo = partes[1]|trim if partes|length > 1 else texto %}
 
-        {% if '30-Day Action Plan' in titulo %}
+        {% if '✨ Exclusive 30-Day Action Plan' in titulo %}
           {% if not plano_renderizado %}
             <div class="plan-30dias">
               <h4>{{ titulo }}</h4>
