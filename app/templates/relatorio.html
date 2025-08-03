@@ -139,20 +139,20 @@
   <div class="section">
     <h3>🌟 Cosmic Insights</h3>
     {% set blocos = resultado.texto.split('## ') %}
-    {% set blocos_vistos = [] %}
+    {% set plano_renderizado = false %}
     {% for bloco in blocos %}
       {% set texto = bloco.strip() %}
-      {% if texto and texto not in blocos_vistos %}
-        {% do blocos_vistos.append(texto) %}
+      {% if texto %}
         {% set partes = texto.split(':', 1) %}
         {% set titulo = partes[0]|trim %}
         {% set conteudo = partes[1]|trim if partes|length > 1 else texto %}
-        {% if '30-Day Action Plan' in titulo %}
+        {% if '30-Day Action Plan' in titulo and not plano_renderizado %}
           <div class="plan-30dias">
             <h4>{{ titulo }}</h4>
             <p>{{ conteudo }}</p>
           </div>
-        {% else %}
+          {% set plano_renderizado = true %}
+        {% elif '30-Day Action Plan' not in titulo %}
           <div class="ai-summary-item" style="margin-bottom: 1.5rem;">
             {% if partes|length > 1 and titulo|length < 70 %}
               <h4>{{ titulo }}</h4>
