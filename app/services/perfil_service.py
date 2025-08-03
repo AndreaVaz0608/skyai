@@ -166,7 +166,6 @@ Your Pisces Sun...\\n\\n\
 
     return f"{preamble}\n{body}"
 
-
 def generate_report_via_ai(user_data: dict) -> dict:
     try:
         prompt = generate_skyai_prompt(user_data)
@@ -203,18 +202,16 @@ def generate_report_via_ai(user_data: dict) -> dict:
             f.write("--- End RAW ---\n")
 
         # ── Limpeza: remove cercas ``` e isola o JSON puro ───────────────────
-        clean_output = re.sub(r"```(?:\w+)?\s*|```", "", raw_output).strip()
+        clean_output = re.sub(r"```(?:\\w+)?\s*|```", "", raw_output).strip()
 
         if '"texto"' in clean_output:
             def _escape_block(match):
-                # match.group(2) contém o texto original
                 body = match.group(2)
                 body = body.replace('\\', '\\\\')   # escapa barras
                 body = body.replace('"', r'\"')     # escapa aspas
                 body = body.replace('\n', r'\n')    # escapa quebras de linha
                 return f'{match.group(1)}{body}{match.group(3)}'
 
-            # ("texto"\s*:\s*")  (conteúdo multi-linha)  (" antes de , } ou \n)
             clean_output = re.sub(
                 r'("texto"\s*:\s*")([\s\S]*?)("(?=\s*[},]))',
                 _escape_block,
@@ -246,9 +243,26 @@ def generate_report_via_ai(user_data: dict) -> dict:
                 "expression": None,
             }
 
+        # ── Correção para remover duplicação do plano 30 dias ────────────────
+        texto = parsed.get("texto", "")
+        if texto.count("30-Day Action Plan") > 1:
+            partes = texto.split("## ")
+            plano_visto = False
+            partes_filtradas = []
+
+            for parte in partes:
+                if "30-Day Action Plan" in parte:
+                    if not plano_visto:
+                        partes_filtradas.append(parte)
+                        plano_visto = True
+                else:
+                    partes_filtradas.append(parte)
+
+            texto = "## ".join(partes_filtradas)
+
         return {
             "erro": None,
-            "texto": parsed.get("texto", ""),
+            "texto": texto,
             "sun_sign": parsed.get("sun_sign"),
             "moon_sign": parsed.get("moon_sign"),
             "ascendant": parsed.get("ascendant"),
@@ -259,6 +273,7 @@ def generate_report_via_ai(user_data: dict) -> dict:
 
     except Exception as e:
         current_app.logger.error(f"[AI ERROR] {e}")
+        
         return {
             "erro": str(e),
             "texto": "Sorry, couldn’t generate report at this time.",
@@ -269,3 +284,4 @@ def generate_report_via_ai(user_data: dict) -> dict:
             "soul_urge": None,
             "expression": None,
         }
+    
