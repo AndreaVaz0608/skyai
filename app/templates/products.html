@@ -1,34 +1,34 @@
 {% extends "base.html" %}
-{% block title %}Choose Your Cosmic Journey • SkyAI{% endblock %}
+{% block title %}Elige tu Viaje Cósmico • SkyAI{% endblock %}
 
 {% block content %}
 <div class="box-container" style="max-width: 1000px; text-align: center;">
   <div class="box-header">
-    <img src="{{ url_for('static', filename='img/logo_skyai.png') }}" alt="Logo">
-    <h2>Choose Your Cosmic Journey</h2>
+    <img src="{{ url_for('static', filename='img/logo_skyai.png') }}" alt="Logo de SkyAI">
+    <h2>Elige tu Viaje Cósmico</h2>
   </div>
 
   <div style="display: flex; flex-wrap: wrap; justify-content: center; gap: 2rem;">
 
     <!-- Essential Plan -->
     <form method="POST" class="plan-box" style="flex: 1; min-width: 280px; max-width: 300px; padding: 1.8rem; border-radius: 16px; background-color: #193c61; border: 2px solid var(--primary-color);">
-      <h3 style="color: var(--primary-color); margin-bottom: 1rem; font-size: 1.4rem;">Essential Map</h3>
-      <p style="color: #ffdd77; font-weight: bold; font-size: 0.85rem; margin-bottom: 0.5rem;">★ Most Popular</p>
+      <h3 style="color: var(--primary-color); margin-bottom: 1rem; font-size: 1.4rem;">Mapa Esencial</h3>
+      <p style="color: #ffdd77; font-weight: bold; font-size: 0.85rem; margin-bottom: 0.5rem;">★ Más popular</p>
       <p style="font-size: 0.95rem; margin-bottom: 1.2rem; color: #d0d0d0;">
-        Get your full personalized Astral Map and Life Path Number report powered by AI.
+        Obtén tu Carta Natal completa y un informe del Número de Camino de Vida personalizado con IA.
       </p>
       <input type="hidden" name="plan" value="Premium">
-      <button type="submit" class="btn-primary" style="margin-top: 0.5rem;">Select Premium</button>
+      <button type="submit" class="btn-primary" style="margin-top: 0.5rem;">Seleccionar Premium</button>
     </form>
 
     <!-- SkyMaster Plan -->
     <form method="POST" class="plan-box" style="flex: 1; min-width: 280px; max-width: 300px; padding: 1.8rem; border-radius: 16px; background-color: #132c49;">
-      <h3 style="color: var(--primary-color); margin-bottom: 1rem; font-size: 1.4rem;">SkyMaster Journey</h3>
+      <h3 style="color: var(--primary-color); margin-bottom: 1rem; font-size: 1.4rem;">Viaje SkyMaster</h3>
       <p style="font-size: 0.95rem; margin-bottom: 1.2rem; color: #d0d0d0;">
-        Includes full astral analysis + monthly astrological forecasts, energy alignments, and AI-guided insights.
+        Incluye análisis astral completo + pronósticos astrológicos mensuales, alineaciones energéticas e insights guiados por IA.
       </p>
       <input type="hidden" name="plan" value="Pro">
-      <button type="submit" class="btn-primary" style="margin-top: 0.5rem;">Select Pro</button>
+      <button type="submit" class="btn-primary" style="margin-top: 0.5rem;">Seleccionar Pro</button>
     </form>
 
   </div>

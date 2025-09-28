@@ -1,5 +1,5 @@
 {% extends "base.html" %}
-{% block title %}Processing... • SkyAI{% endblock %}
+{% block title %}Procesando... • SkyAI{% endblock %}
 
 {% block content %}
 
@@ -52,21 +52,21 @@
 
 <div class="video-container">
   {% if pago %}
-    <div class="paid-message">✅ Payment confirmed! Your report is being generated.</div>
+    <div class="paid-message">✅ ¡Pago confirmado! Tu informe se está generando.</div>
   {% endif %}
 
-  <div class="message">Aligning stars, decoding numbers... Your cosmic map is almost ready!</div>
+  <div class="message">Alineando estrellas, decodificando números... ¡Tu mapa cósmico casi está listo!</div>
 
   <video autoplay muted loop playsinline>
     <source src="{{ url_for('static', filename='videos/skyai_loading.mp4') }}" type="video/mp4">
-    Your browser does not support the video tag.
+    Tu navegador no admite la etiqueta de video.
   </video>
 </div>
 
 <script>
   setTimeout(function() {
     window.location.href = "{{ url_for('user.gerar_relatorio', sessao_id=sessao_id) }}";
-  }, 8000); // Redirect after 8 seconds
+  }, 8000); // Redirigir después de 8 segundos
 </script>
 
 {% endblock %}

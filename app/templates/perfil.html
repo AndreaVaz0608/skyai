@@ -1,34 +1,34 @@
 {% extends "base.html" %}
-{% block title %}Edit Profile • Sky.AI{% endblock %}
+{% block title %}Editar perfil • Sky.AI{% endblock %}
 
 {% block content %}
 <div class="box-container" style="max-width: 600px;">
   <div class="box-header">
-    <img src="{{ url_for('static', filename='img/logo_skyai.png') }}" alt="Logo">
-    <h2>Edit Profile</h2>
+    <img src="{{ url_for('static', filename='img/logo_skyai.png') }}" alt="Logo de SkyAI">
+    <h2>Editar perfil</h2>
   </div>
 
   <form method="POST">
     <div>
-      <label for="name">Full Name</label>
+      <label for="name">Nombre completo</label>
       <input type="text" id="name" name="name" value="{{ user.name }}" required />
     </div>
 
     <div>
-      <label for="email">Email Address</label>
+      <label for="email">Correo electrónico</label>
       <input type="email" id="email" name="email" value="{{ user.email }}" required />
     </div>
 
     <div>
-      <label for="password">New Password <small>(optional)</small></label>
-      <input type="password" id="password" name="password" placeholder="Leave blank to keep current" />
+      <label for="password">Nueva contraseña <small>(opcional)</small></label>
+      <input type="password" id="password" name="password" placeholder="Déjalo en blanco para mantener la actual" />
     </div>
 
-    <button type="submit">Save Changes</button>
+    <button type="submit">Guardar cambios</button>
   </form>
 
   <div class="footer-links">
-    <a href="{{ url_for('auth_views.dashboard') }}">← Back to Dashboard</a>
+    <a href="{{ url_for('auth_views.dashboard') }}">← Volver al Panel</a>
   </div>
 </div>
 {% endblock %}

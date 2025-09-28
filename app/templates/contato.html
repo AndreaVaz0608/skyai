@@ -1,11 +1,11 @@
 {% extends "base.html" %}
-{% block title %}Contact Us • SkyAI{% endblock %}
+{% block title %}Contáctanos • SkyAI{% endblock %}
 
 {% block content %}
 <div class="box-container">
   <div class="box-header">
-    <img src="{{ url_for('static', filename='img/logo_skyai.png') }}" alt="Logo">
-    <h2>Contact SkyAI</h2>
+    <img src="{{ url_for('static', filename='img/logo_skyai.png') }}" alt="Logo de SkyAI">
+    <h2>Contacta a SkyAI</h2>
   </div>
 
   {% with messages = get_flashed_messages(with_categories=true) %}
@@ -17,15 +17,15 @@
   {% endwith %}
 
   {% if success %}
-    <p class="flash success">✅ Message sent successfully! We’ll respond shortly.</p>
+    <p class="flash success">✅ ¡Mensaje enviado con éxito! Te responderemos en breve.</p>
   {% endif %}
 
   <form method="POST">
-    <input type="text" name="name" placeholder="Your name" required>
-    <input type="email" name="email" placeholder="Your email" required>
-    <textarea name="message" placeholder="Type your message…" required
+    <input type="text" name="name" placeholder="Tu nombre" required>
+    <input type="email" name="email" placeholder="Tu correo electrónico" required>
+    <textarea name="message" placeholder="Escribe tu mensaje…" required
               style="min-height:120px;resize:none;box-sizing:border-box;"></textarea>
-    <button type="submit">Send Message</button>
+    <button type="submit">Enviar mensaje</button>
   </form>
 </div>
 {% endblock %}

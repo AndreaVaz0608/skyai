@@ -31,7 +31,7 @@ user_bp = Blueprint("user", __name__, template_folder="../templates")
 @user_bp.route('/preencher-dados', methods=['GET', 'POST'])
 def preencher_dados():
     if 'user_id' not in session:
-        flash("Please log in to continue.", "error")
+        flash("Inicia sesión para continuar.", "error")
         return redirect(url_for('auth_views.login_view'))
 
     if request.method == 'POST':
@@ -53,7 +53,7 @@ def preencher_dados():
         if not birth_country: missing_fields.append("Country")
 
         if missing_fields:
-            flash(f"Please complete the following fields: {', '.join(missing_fields)}.", "error")
+            flash(f"Por favor completa los siguientes campos: {', '.join(missing_fields)}.", "error")
             return render_template("user_data.html")
 
         # 💾 Guarda dados na sessão para uso após pagamento
@@ -81,7 +81,7 @@ def preencher_dados():
 def processando_relatorio():
     # ─── Segurança ────────────────────────────────────────────────
     if "user_id" not in session:
-        flash("Please log in to view your report.", "error")
+        flash("Inicia sesión para ver tu informe.", "error")
         return redirect(url_for("auth_views.login_view"))
 
     user_id           = session["user_id"]
@@ -98,7 +98,7 @@ def processando_relatorio():
         sessao = TestSession.query.filter_by(id=sessao_id_param, user_id=user_id).first()
 
         if not sessao:
-            flash("Session not found.", "warning")
+            flash("Sesión no encontrada.", "warning")
             return redirect(url_for("auth_views.dashboard"))
 
         # Ainda processando → permanece na tela de loading
@@ -130,7 +130,7 @@ def processando_relatorio():
 
             payment = pay_q.first()
             if not payment:
-                flash("Payment not confirmed yet. Please wait a few seconds and refresh.", "warning")
+                flash("El pago aún no se ha confirmado. Espera unos segundos y actualiza.", "warning")
                 return render_template("carregando.html", sessao_id=None, pago=False)
 
         # 2️⃣ Cria TestSession apenas uma vez
@@ -165,7 +165,7 @@ def processando_relatorio():
     except Exception as e:
         db.session.rollback()
         current_app.logger.error(f"[PROCESSANDO ERROR] {e}")
-        flash("Unexpected error while generating your report. Please try again.", "danger")
+        flash("Error inesperado al generar tu informe. Inténtalo de nuevo.", "danger")
         return redirect(url_for("auth_views.dashboard"))
 
 # 🔹 Função de geração do relatório em background
@@ -218,7 +218,7 @@ def gerar_relatorio_background(app, sessao_id):
 def gerar_relatorio():
     # ─── Permissão ──────────────────────────────────────────────────────
     if "user_id" not in session:
-        flash("Please log in to view the report.", "error")
+        flash("Inicia sesión para ver el informe.", "error")
         return redirect(url_for("auth_views.login_view"))
 
     user_id   = session["user_id"]
@@ -235,12 +235,12 @@ def gerar_relatorio():
     )
 
     if not sessao:
-        flash("No session found.", "warning")
+        flash("No se encontró ninguna sesión.", "warning")
         return redirect(url_for("user.preencher_dados"))
 
     # Relatório ainda não finalizado?
     if not sessao.ai_result:
-        flash("Report generation is still in progress.", "warning")
+        flash("La generación del informe aún está en curso.", "warning")
         return redirect(url_for("user.processando_relatorio", sessao_id=sessao.id))
 
     # ─── Converte/normaliza o campo ai_result ───────────────────────────
@@ -330,15 +330,12 @@ async def html_to_pdf_bytes(html: str) -> bytes:
     return pdf_bytes
 
 # ---------------------------------------------------------------------------
-# 🔹 Rota — /relatorio/pdf (mantém o restante igual)
-# ---------------------------------------------------------------------------
-# ---------------------------------------------------------------------------
 # 🔹 Rota — /relatorio/pdf  (gera PDF com o MESMO conteúdo já tratado)
 # ---------------------------------------------------------------------------
 @user_bp.route("/relatorio/pdf")
 def relatorio_pdf():
     if "user_id" not in session:
-        flash("You must be logged in to download the PDF.", "error")
+        flash("Debes iniciar sesión para descargar el PDF.", "error")
         return redirect(url_for("auth_views.login_view"))
 
     user_id   = session["user_id"]
@@ -353,11 +350,11 @@ def relatorio_pdf():
                               .first()
     )
     if not sessao:
-        flash("No session found to generate the PDF.", "warning")
+        flash("No se encontró ninguna sesión para generar el PDF.", "warning")
         return redirect(url_for("user.preencher_dados"))
 
     if not sessao.ai_result:
-        flash("Report is still being generated. Try again soon.", "warning")
+        flash("El informe aún se está generando. Intenta de nuevo pronto.", "warning")
         return redirect(url_for("user.processando_relatorio", sessao_id=sessao.id))
 
     # ─── Converte/normaliza o campo ai_result ───────────────────────────
@@ -405,7 +402,7 @@ def relatorio_pdf():
         pdf_bytes = asyncio.run(html_to_pdf_bytes(html))
     except Exception as e:
         current_app.logger.error(f"[PDF GENERATION ERROR] {e}")
-        flash("Error generating PDF. Please try later.", "danger")
+        flash("Error al generar el PDF. Intenta más tarde.", "danger")
         return redirect(url_for("user.gerar_relatorio", sessao_id=sessao.id))
 
     # ─── Envia arquivo ao usuário ───────────────────────────────────────
@@ -422,7 +419,7 @@ def relatorio_pdf():
 @user_bp.route("/compatibility/pdf")
 def compatibility_pdf():
     if "user_id" not in session:
-        flash("You must be logged in to download the PDF.", "error")
+        flash("Debes iniciar sesión para descargar el PDF.", "error")
         return redirect(url_for("auth_views.login_view"))
 
     user_id   = session["user_id"]
@@ -435,15 +432,15 @@ def compatibility_pdf():
         .first()
     )
     if not match:
-        flash("Compatibility result not found.", "warning")
+        flash("No se encontró el resultado de compatibilidad.", "warning")
         return redirect(url_for("auth_views.dashboard"))
 
     # Separar nomes (estavam no ‘question’)
     try:
         title_names = match.question.replace("Compatibility ", "").split(" × ")
-        name_1, name_2 = title_names if len(title_names) == 2 else ("Person 1", "Person 2")
+        name_1, name_2 = title_names if len(title_names) == 2 else ("Persona 1", "Persona 2")
     except Exception:
-        name_1, name_2 = ("Person 1", "Person 2")
+        name_1, name_2 = ("Persona 1", "Persona 2")
 
     # Renderiza o MESMO template usado na tela, porém para PDF
     html = render_template(
@@ -458,7 +455,7 @@ def compatibility_pdf():
         pdf_bytes = asyncio.run(html_to_pdf_bytes(html))
     except Exception as e:
         current_app.logger.error(f"[PDF COMPAT ERROR] {e}")
-        flash("Error generating PDF. Please try later.", "danger")
+        flash("Error al generar el PDF. Intenta más tarde.", "danger")
         return redirect(url_for("auth_views.dashboard"))
 
     response = make_response(pdf_bytes)
@@ -471,7 +468,7 @@ def compatibility_pdf():
 @user_bp.route('/select-product', methods=['GET', 'POST'])
 def select_product():
     if 'user_id' not in session:
-        flash("Please log in to continue.", "error")
+        flash("Inicia sesión para continuar.", "error")
         return redirect(url_for('auth_views.login_view'))
 
     if request.method == 'POST':
@@ -482,10 +479,10 @@ def select_product():
             db.session.commit()
             session['user_plan'] = selected_plan
 
-            flash(f"You selected the {selected_plan} plan!", "success")
+            flash(f"¡Seleccionaste el plan {selected_plan}!", "success")
             return redirect(url_for('user.preencher_dados'))
         else:
-            flash("No plan selected.", "warning")
+            flash("Ningún plan seleccionado.", "warning")
 
     return render_template('products.html')
 
@@ -493,14 +490,14 @@ def select_product():
 def compatibility():
     # ─────────── Requer login ───────────
     if "user_id" not in session:
-        flash("Please log in to continue.", "error")
+        flash("Inicia sesión para continuar.", "error")
         return redirect(url_for("auth_views.login_view"))
 
     user = User.query.get(session["user_id"])
 
     # ─────────── Bloqueio se já usado ───────────
     if user.compatibility_used:
-        flash("You already used your Compatibility test. Buy again to unlock a new one.", "info")
+        flash("Ya usaste tu prueba de Compatibilidad. Compra nuevamente para desbloquear una nueva.", "info")
         return redirect(url_for("auth_views.dashboard"))
 
     # ─────────── Mostra formulário (GET) ─────────
@@ -524,7 +521,7 @@ def compatibility():
         name_1, birth_1, birth_time_1, birth_city_1, birth_country_1,
         name_2, birth_2, birth_time_2, birth_city_2, birth_country_2
     ]):
-        flash("Please fill in all fields for both people.", "warning")
+        flash("Por favor, completa todos los campos para ambas personas.", "warning")
         return render_template("compatibility.html")
 
     try:
@@ -551,47 +548,47 @@ def compatibility():
         client = OpenAI(api_key=os.getenv("OPENAI_API_KEY"))
 
         prompt = f"""
-You are Guru SkyAI, an expert in astrological and numerological compatibility.
-Respond in the same language that you are asked.  **Do NOT greet** the user; deliver ONLY the report.
+Eres el Guru SkyAI, experto en compatibilidad astrológica y numerológica.
+Responde **exclusivamente en español de México (es-MX)**. **No saludes**; entrega SOLO el informe.
 
-Return the analysis with the following emoji-titled sections (present/future focus only):
+Devuelve el análisis con estas secciones tituladas con emoji (enfoque en presente y futuro):
 
-💞 Overview  
-🌞 Sun‑Sign Dynamics  
-🌙 Emotional Connection (Moon)  
-⬆️ Rising‑Sign Energy  
-🔢 Numerological Resonance  
-❤️ Relationship Strengths  
-⚠️ Potential Challenges  
-✨ Practical Tips  
+💞 Panorama general  
+🌞 Dinámica de signos solares  
+🌙 Conexión emocional (Luna)  
+⬆️ Energía del Ascendente  
+🔢 Resonancia numerológica  
+❤️ Fortalezas de la relación  
+⚠️ Desafíos potenciales  
+✨ Recomendaciones prácticas  
 
-PERSON A  
-• Name………..: {name_1}  
-• Sun………..…: {astro_1['positions']['SUN']['sign']}  
-• Moon………..…: {astro_1['positions']['MOON']['sign']}  
-• Rising…: {astro_1['positions']['ASC']['sign']}  
-• Life‑Path Number: {num_1['life_path']}  
-• Soul‑Urge Number: {num_1['soul_urge']}  
-• Expression Number: {num_1['expression']}
+PERSONA A  
+• Nombre………..: {name_1}  
+• Sol………..…: {astro_1['positions']['SUN']['sign']}  
+• Luna………..…: {astro_1['positions']['MOON']['sign']}  
+• Ascendente…: {astro_1['positions']['ASC']['sign']}  
+• Número de Camino de Vida: {num_1['life_path']}  
+• Número de Anhelo del Alma: {num_1['soul_urge']}  
+• Número de Expresión: {num_1['expression']}
 
-PERSON B  
-• Name………..: {name_2}  
-• Sun………..…: {astro_2['positions']['SUN']['sign']}  
-• Moon………..…: {astro_2['positions']['MOON']['sign']}  
-• Rising…: {astro_2['positions']['ASC']['sign']}  
-• Life‑Path Number: {num_2['life_path']}  
-• Soul‑Urge Number: {num_2['soul_urge']}  
-• Expression Number: {num_2['expression']}
+PERSONA B  
+• Nombre………..: {name_2}  
+• Sol………..…: {astro_2['positions']['SUN']['sign']}  
+• Luna………..…: {astro_2['positions']['MOON']['sign']}  
+• Ascendente…: {astro_2['positions']['ASC']['sign']}  
+• Número de Camino de Vida: {num_2['life_path']}  
+• Número de Anhelo del Alma: {num_2['soul_urge']}  
+• Número de Expresión: {num_2['expression']}
 
-Write 400–600 words.  
-→ Be direct, clear, and fully grounded in the data above.  
-→ Discuss only present tendencies and future potentials—no past‑tense predictions unless explicitly asked.
+Escribe 400–600 palabras.  
+→ Sé directo, claro y totalmente anclado en los datos anteriores.  
+→ Habla solo de tendencias presentes y potenciales futuras; evita referencias al pasado salvo que se te pida explícitamente.
 """
 
         response = client.chat.completions.create(
             model="gpt-4o-mini",
             messages=[
-                {"role": "system", "content": "You are Guru SkyAI, master of compatibility."},
+                {"role": "system", "content": "Eres el Guru SkyAI, maestro en compatibilidad. Responde en español de México (es-MX)."},
                 {"role": "user", "content": prompt}
             ],
             temperature=0.85,
@@ -621,27 +618,27 @@ Write 400–600 words.
 
     except Exception as e:
         current_app.logger.error(f"[COMPATIBILITY ERROR] {e}")
-        flash("Sorry, we couldn't generate your compatibility reading right now.", "danger")
+        flash("Lo sentimos, no pudimos generar tu lectura de compatibilidad en este momento.", "danger")
         return render_template("compatibility.html")
 
 @user_bp.route("/ask-guru", methods=["POST"])
 def ask_guru():
     # ─────────── Requer login ───────────
     if "user_id" not in session:
-        flash("Please log in to ask Guru SkyAI.", "error")
+        flash("Inicia sesión para preguntarle al Guru SkyAI.", "error")
         return redirect(url_for("auth_views.login_view"))
 
     user = User.query.get(session["user_id"])
 
     # ─────────── Limite de 4 perguntas ───────────
     if user.guru_questions_used >= 4:
-        flash("You have reached your 4-question limit for Guru SkyAI. Buy again to reset.", "info")
+        flash("Has alcanzado tu límite de 4 preguntas para el Guru SkyAI. Compra nuevamente para restablecerlo.", "info")
         return redirect(url_for("auth_views.dashboard"))
 
     # ─────────── Validação da pergunta ───────────
     question = request.form.get("question", "").strip()
     if len(question) < 5:
-        flash("Please enter a valid question.", "warning")
+        flash("Ingresa una pregunta válida.", "warning")
         return redirect(url_for("auth_views.dashboard"))
 
     # ─────────── Garante que o usuário tem mapa gerado ─────────
@@ -651,7 +648,7 @@ def ask_guru():
                     .order_by(TestSession.created_at.desc())
                     .first())
     if not last_session:
-        flash("Generate an astral map first so the Guru can give you a personalised answer.", "info")
+        flash("Primero genera una carta natal para que el Guru pueda darte una respuesta personalizada.", "info")
         return redirect(url_for("user.preencher_dados"))
 
     # Extrai dados do último mapa
@@ -665,31 +662,29 @@ def ask_guru():
 
     # ─────────── Monta prompt para OpenAI ───────────
     prompt = f"""
-You are Guru SkyAI — a pragmatic advisor who must ground EVERY answer in the user's
-own natal data and, if available, the most recent **12-month forecast** delivered
-by SkyAI.
+Eres el Guru SkyAI — un asesor pragmático que DEBE fundamentar CADA respuesta en los datos natales del usuario y, si está disponible, en el pronóstico de **12 meses** más reciente entregado por SkyAI.
 
-Current year: {current_year}.  
-✦ Never reference calendar years *earlier* than {current_year} unless the user explicitly asks.  
-✦ When you mention future periods, be explicit: e.g. “Feb–Mar {current_year + 1}”.
+Año actual: {current_year}.  
+✦ Nunca hagas referencia a años de calendario *anteriores* a {current_year} a menos que el usuario lo pida explícitamente.  
+✦ Cuando menciones periodos futuros, sé explícito: p. ej., “feb–mar {current_year + 1}”.
 
-User QUESTION:
+PREGUNTA del usuario:
 \"\"\"{question}\"\"\"
 
-User CONTEXT:
-- Sun sign: {sun}
-- Moon sign: {moon}
-- Ascendant: {asc}
-- Life-Path number: {life}
-- Soul-Urge number: {soul}
-- Expression number: {expr}
+CONTEXTO del usuario:
+- Signo solar: {sun}
+- Signo lunar: {moon}
+- Ascendente: {asc}
+- Número de Camino de Vida: {life}
+- Número de Anhelo del Alma: {soul}
+- Número de Expresión: {expr}
 
-RULES
-1. Begin with a one-sentence direct answer.
-2. Then explain **why** — cite at least one natal aspect OR the 12-month forecast
-   (e.g. “Jupiter square Saturn in Feb 2026”).
-3. End with a concrete recommendation the user can apply within 7 days.
-4. No greetings, no fluff.
+REGLAS
+1. Empieza con una oración que responda directamente.
+2. Luego explica **por qué** — cita al menos un indicador natal O el pronóstico de 12 meses
+   (p. ej., “Júpiter cuadratura Saturno en feb {current_year + 1}”).
+3. Termina con una recomendación concreta que pueda aplicar en 7 días.
+4. Sin saludos ni relleno.
 """
 
     try:
@@ -699,7 +694,7 @@ RULES
         response = client.chat.completions.create(
             model="gpt-4o-mini",
             messages=[
-                {"role": "system", "content": "You are Guru SkyAI, the clear and practical cosmic advisor."},
+                {"role": "system", "content": "Eres el Guru SkyAI, el asesor cósmico claro y práctico. Responde en español de México (es-MX)."},
                 {"role": "user", "content": prompt}
             ],
             temperature=0.65,
@@ -713,12 +708,11 @@ RULES
         user.guru_questions_used += 1
         db.session.commit()
 
-        flash("✨ Guru SkyAI has answered your question. See the response below in your dashboard!", "success")
+        flash("✨ El Guru SkyAI ha respondido tu pregunta. ¡Ve la respuesta abajo en tu panel!", "success")
 
     except Exception as e:
         db.session.rollback()
         current_app.logger.error(f"[GURU SKY ERROR] {e}")
-        flash("Sorry, Guru SkyAI couldn't answer your question right now.", "danger")
+        flash("Lo sentimos, el Guru SkyAI no pudo responder tu pregunta en este momento.", "danger")
 
     return redirect(url_for("auth_views.dashboard"))
-

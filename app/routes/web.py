@@ -32,11 +32,11 @@ def login_view():
             session['user_id'] = user.id
             session['user_name'] = user.name
             session['user_plan'] = user.plan
-            flash(f"Welcome, {user.name.split()[0]}!", "success")
+            flash(f"¡Bienvenido(a), {user.name.split()[0]}!", "success")
 
             return redirect(url_for('auth_views.dashboard'))
 
-        flash("Invalid credentials", "error")
+        flash("Credenciales inválidas.", "error")
         return redirect(url_for('auth_views.login_view'))
 
     return render_template('login.html')
@@ -52,12 +52,12 @@ def register_view():
         accepted_privacy = request.form.get("accepted_privacy")
 
         if not all([name, email, password, accepted_terms, accepted_privacy]):
-            flash("All fields are required, including terms and privacy agreement.", "warning")
+            flash("Todos los campos son obligatorios, incluida la aceptación de términos y privacidad.", "warning")
             return redirect(url_for('auth_views.register_view'))
 
         existing_user = User.query.filter_by(email=email).first()
         if existing_user:
-            flash("Email is already in use. Try logging in or resetting your password.", "error")
+            flash("Ese correo ya está en uso. Intenta iniciar sesión o restablecer tu contraseña.", "error")
             return redirect(url_for('auth_views.register_view'))
 
         try:
@@ -81,19 +81,19 @@ def register_view():
             except Exception as e:
                 current_app.logger.error(f"[EMAIL ERROR] {e}")
 
-            flash(f"Registration successful, {name.split()[0]}!", "success")
+            flash(f"¡Registro exitoso, {name.split()[0]}!", "success")
             return redirect(url_for('user.preencher_dados'))
 
         except SQLAlchemyError as e:
             db.session.rollback()
             current_app.logger.error(f"[REGISTER SQL ERROR] {e}")
-            flash("Database error during registration. Please try again later.", "danger")
+            flash("Error de base de datos durante el registro. Inténtalo de nuevo más tarde.", "danger")
             return redirect(url_for('auth_views.register_view'))
 
         except Exception as e:
             db.session.rollback()
             current_app.logger.error(f"[REGISTER UNEXPECTED ERROR] {e}")
-            flash("An unexpected error occurred. Please try again later.", "danger")
+            flash("Ocurrió un error inesperado. Inténtalo de nuevo más tarde.", "danger")
             return redirect(url_for('auth_views.register_view'))
 
     return render_template('register.html')
@@ -105,13 +105,13 @@ def forgot_password():
         email = request.form.get('email')
 
         if not email:
-            flash("Please enter your email address.", "warning")
+            flash("Ingresa tu correo electrónico.", "warning")
             return redirect(url_for('auth_views.forgot_password'))
 
         user = User.query.filter_by(email=email).first()
 
         if not user:
-            flash("Email not found. Please check and try again.", "error")
+            flash("Correo no encontrado. Verifícalo e inténtalo nuevamente.", "error")
             return redirect(url_for('auth_views.forgot_password'))
 
         reset_token = secrets.token_urlsafe(32)
@@ -120,7 +120,7 @@ def forgot_password():
 
         send_recovery_email(user.email, reset_token)
 
-        flash("Instructions sent to your email. Check your inbox!", "success")
+        flash("Instrucciones enviadas a tu correo. ¡Revisa tu bandeja de entrada!", "success")
         return redirect(url_for('auth_views.login_view'))
 
     return render_template('forgot_password.html')
@@ -129,7 +129,7 @@ def forgot_password():
 @auth_views.route('/logout')
 def logout():
     session.clear()
-    flash("You have successfully logged out!", "info")
+    flash("¡Cerraste sesión correctamente!", "info")
     return redirect(url_for('auth_views.login_view'))
 
 # app/routes/web.py  ➜  trecho completo da view dashboard()
@@ -137,7 +137,7 @@ def logout():
 @auth_views.route("/dashboard")
 def dashboard():
     if "user_id" not in session:
-        flash("You need to log in to access the dashboard.", "error")
+        flash("Necesitas iniciar sesión para acceder al panel.", "error")
         return redirect(url_for("auth_views.login_view"))
 
     user_id = session["user_id"]
@@ -213,13 +213,13 @@ def termos():
 def reset_password():
     token = request.args.get('token')
     if not token:
-        flash("Invalid or missing token.", "danger")
+        flash("Token inválido o ausente.", "danger")
         return redirect(url_for('auth_views.login_view'))
 
     user = User.query.filter_by(reset_token=token).first()
 
     if not user:
-        flash("Invalid or expired reset link.", "danger")
+        flash("Enlace de restablecimiento inválido o vencido.", "danger")
         return redirect(url_for('auth_views.login_view'))
 
     if request.method == 'POST':
@@ -227,18 +227,18 @@ def reset_password():
         confirm_password = request.form.get('confirm_password')
 
         if not password or not confirm_password:
-            flash("Please fill in all fields.", "warning")
+            flash("Por favor, completa todos los campos.", "warning")
             return redirect(request.url)
 
         if password != confirm_password:
-            flash("Passwords do not match.", "warning")
+            flash("Las contraseñas no coinciden.", "warning")
             return redirect(request.url)
 
         user.set_password(password)
         user.reset_token = None
         db.session.commit()
 
-        flash("Password successfully reset! Please log in.", "success")
+        flash("¡Contraseña restablecida con éxito! Inicia sesión.", "success")
         return redirect(url_for('auth_views.login_view'))
 
     return render_template('reset_password.html')

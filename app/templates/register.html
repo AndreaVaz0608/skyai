@@ -1,11 +1,11 @@
 {% extends "base.html" %}
-{% block title %}Register • SkyAI{% endblock %}
+{% block title %}Crear cuenta • SkyAI{% endblock %}
 
 {% block content %}
 <div class="box-container" style="max-width: 460px;">
   <div class="box-header">
-    <img src="{{ url_for('static', filename='img/logo_skyai.png') }}" alt="SkyAI Logo" style="max-height: 60px;" onerror="this.style.display='none';">
-    <h2>Create Your SkyAI Account</h2>
+    <img src="{{ url_for('static', filename='img/logo_skyai.png') }}" alt="Logo de SkyAI" style="max-height: 60px;" onerror="this.style.display='none';">
+    <h2>Crea tu cuenta de SkyAI</h2>
   </div>
 
   {% with messages = get_flashed_messages(with_categories=true) %}
@@ -17,35 +17,35 @@
   {% endwith %}
 
   <form method="POST" action="{{ url_for('auth_views.register_view') }}">
-    <input type="text" name="name" placeholder="Your full name" required />
-    <input type="email" name="email" placeholder="Your email" required />
+    <input type="text" name="name" placeholder="Tu nombre completo" required />
+    <input type="email" name="email" placeholder="Tu correo electrónico" required />
 
     <div class="password-wrapper">
-      <input type="password" id="password" name="password" placeholder="Create a password" required />
-      <button type="button" class="toggle-password" onclick="togglePassword()" aria-label="Show password">👁️</button>
+      <input type="password" id="password" name="password" placeholder="Crea una contraseña" required />
+      <button type="button" class="toggle-password" onclick="togglePassword()" aria-label="Mostrar contraseña">👁️</button>
     </div>
 
     <div class="checkbox-wrapper" style="margin-bottom: 1.5rem;">
       <div style="margin-bottom: 0.75rem;">
         <label style="display: flex; align-items: center; gap: 0.5rem;">
           <input type="checkbox" name="accepted_terms" required />
-          <span>I have read and accept the <a href="#" onclick="openModal('terms'); return false;">Terms of Use</a>.</span>
+          <span>He leído y acepto los <a href="#" onclick="openModal('terms'); return false;">Términos de uso</a>.</span>
         </label>
       </div>
 
       <div>
         <label style="display: flex; align-items: center; gap: 0.5rem;">
           <input type="checkbox" name="accepted_privacy" required />
-          <span>I have read and accept the <a href="#" onclick="openModal('privacy'); return false;">Privacy Policy</a>.</span>
+          <span>He leído y acepto la <a href="#" onclick="openModal('privacy'); return false;">Política de privacidad</a>.</span>
         </label>
       </div>
     </div>
 
-    <button type="submit">Register</button>
+    <button type="submit">Crear cuenta</button>
   </form>
 
   <div class="footer-links">
-    <a href="{{ url_for('auth_views.login_view') }}">Already have an account? Login</a>
+    <a href="{{ url_for('auth_views.login_view') }}">¿Ya tienes una cuenta? Inicia sesión</a>
   </div>
 </div>
 

@@ -1,5 +1,5 @@
 {% extends "base.html" %}
-{% block title %}Complete Your Cosmic Profile • SkyAI{% endblock %}
+{% block title %}Completa tu Perfil Cósmico • SkyAI{% endblock %}
 
 {% block content %}
 <style>
@@ -62,8 +62,8 @@
 
 <div class="box-container" style="max-width: 520px; margin: 0 auto;">
   <div class="box-header" style="text-align: center;">
-    <img src="{{ url_for('static', filename='img/logo_skyai.png') }}" alt="SkyAI Logo" style="max-width: 150px; height: auto; margin-bottom: 1rem;" />
-    <h2>Complete Your Cosmic Profile</h2>
+    <img src="{{ url_for('static', filename='img/logo_skyai.png') }}" alt="Logo de SkyAI" style="max-width: 150px; height: auto; margin-bottom: 1rem;" />
+    <h2>Completa tu Perfil Cósmico</h2>
   </div>
 
   {% with messages = get_flashed_messages(with_categories=true) %}
@@ -77,38 +77,38 @@
   <!-- ✅ O form envia para /preencher-dados ➜ Python salva session ➜ redireciona para Stripe -->
   <form method="POST" action="{{ url_for('user.preencher_dados') }}">
     <div class="form-group">
-      <label for="full_name">Full Name</label>
+      <label for="full_name">Nombre completo</label>
       <input type="text" id="full_name" name="full_name" required />
     </div>
 
     <div class="form-group">
-      <label for="birth_date">Date of Birth</label>
+      <label for="birth_date">Fecha de nacimiento</label>
       <input type="date" id="birth_date" name="birth_date" required />
     </div>
 
     <div class="form-group">
-      <label for="birth_time">Time of Birth</label>
+      <label for="birth_time">Hora de nacimiento</label>
       <input type="time" id="birth_time" name="birth_time" required />
     </div>
 
     <div class="form-group">
-      <label for="birth_city">City of Birth</label>
+      <label for="birth_city">Ciudad de nacimiento</label>
       <input type="text" id="birth_city" name="birth_city" required />
     </div>
 
     <div class="form-group">
-      <label for="birth_country">Country of Birth</label>
+      <label for="birth_country">País de nacimiento</label>
       <input type="text" id="birth_country" name="birth_country" required />
     </div>
 
-    <button type="submit" class="btn-primary">💳 Save and Continue</button>
+    <button type="submit" class="btn-primary">💳 Guardar y continuar</button>
     <p class="refund-note">
-      ⚠️ After payment and test completion, no refunds will be issued.
+      ⚠️ Una vez realizado el pago y completada la prueba, no se realizan reembolsos.
     </p>
   </form>
 
   <div class="footer-links" style="margin-top: 2rem; text-align: center;">
-    <a href="{{ url_for('auth_views.logout') }}">← Logout</a>
+    <a href="{{ url_for('auth_views.logout') }}">← Cerrar sesión</a>
   </div>
 </div>
 {% endblock %}

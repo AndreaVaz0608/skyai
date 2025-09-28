@@ -39,7 +39,7 @@ def _queue_email(msg: Message):
 def enviar_email_boas_vindas(user):
     bcc_addr = current_app.config.get("MAIL_BCC")
     msg = Message(
-        subject="🌟 Welcome to SkyAI – Your Cosmic Journey Begins!",
+        subject="🌟 ¡Bienvenido(a) a SkyAI — tu viaje cósmico comienza!",
         recipients=[user.email],
         bcc=[bcc_addr] if bcc_addr else None,
         sender=current_app.config["MAIL_DEFAULT_SENDER"],
@@ -54,7 +54,7 @@ def enviar_email_boas_vindas(user):
 def enviar_email_relatorio(user, sessao_id):
     link = f"https://skyai.digital/relatorio?sessao_id={sessao_id}"
     msg = Message(
-        subject="🌌 Your SkyAI Astrological & Numerological Report is Ready!",
+        subject="🌌 ¡Tu informe astrológico y numerológico de SkyAI está listo!",
         recipients=[user.email],
         sender=current_app.config["MAIL_DEFAULT_SENDER"],
     )
@@ -76,7 +76,7 @@ def enviar_email_relatorio(user, sessao_id):
 def send_recovery_email(recipient_email, reset_token):
     reset_link = f"https://skyai.digital/reset-password?token={reset_token}"
     msg = Message(
-        subject="🔒 Password Recovery Instructions • SkyAI",
+        subject="🔒 Instrucciones para recuperar tu contraseña • SkyAI",
         recipients=[recipient_email],
         sender=current_app.config["MAIL_DEFAULT_SENDER"],
     )

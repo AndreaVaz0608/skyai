@@ -1,5 +1,5 @@
 {% extends "base.html" %}
-{% block title %}Astral Report • SkyAI{% endblock %}
+{% block title %}Informe astral • SkyAI{% endblock %}
 {% block body_class %}report-page{% endblock %}
 
 {% block content %}
@@ -10,9 +10,9 @@
   <!-- ---------- Cabeçalho ---------- -->
   <div style="text-align:center; margin-bottom:2rem;">
       <img src="{{ url_for('static', filename='img/logo_skyai.png') }}"
-           alt="SkyAI Logo" style="max-height:70px">
+           alt="Logo de SkyAI" style="max-height:70px">
       <h1 style="margin-top:.8rem; font-size:2rem; color:#FFD86A;">
-          🌌 Your Personalized Astral Report
+          🌌 Tu Informe Astral Personalizado
       </h1>
   </div>
 
@@ -20,26 +20,26 @@
   {% if resultado.erro %}
     <div style="background:#401010; padding:1rem 1.4rem; border-radius:8px;
                 color:#FF9E9E; margin-bottom:1.8rem;">
-        🚧 We couldn’t complete your astral reading.<br>
+        🚧 No pudimos completar tu lectura astral.<br>
         <small><strong>Error:</strong> {{ resultado.erro }}</small>
     </div>
   {% endif %}
 
   <!-- ---------- PROFILE SUMMARY ---------- -->
   <section style="background:#111C2C; border-radius:10px; padding:1.4rem 1.6rem; margin-bottom:1.8rem;">
-     <h2 style="color:#FFD86A; font-size:1.35rem; margin-top:0;">🗂️ Profile Summary</h2>
+     <h2 style="color:#FFD86A; font-size:1.35rem; margin-top:0;">🗂️ Resumen del perfil</h2>
      <ul style="list-style:none; padding:0; margin-top:.8rem; font-size:1rem; line-height:1.55rem; color:#EAEAEA;">
-        <li><span style="color:#FFD86A;">🌟 Full Name:</span> {{ resultado.nome|default('—') }}</li>
-        <li><span style="color:#FFD86A;">🗅️ Date of Birth:</span> {{ resultado.birth_date|default('—') }}</li>
-        <li><span style="color:#FFD86A;">🕰️ Time of Birth:</span> {{ resultado.birth_time|default('—') }}</li>
-        <li><span style="color:#FFD86A;">🌍 City:</span> {{ resultado.birth_city|default('—') }}</li>
-        <li><span style="color:#FFD86A;">🌎 Country:</span> {{ resultado.birth_country|default('—') }}</li>
+        <li><span style="color:#FFD86A;">🌟 Nombre completo:</span> {{ resultado.nome|default('—') }}</li>
+        <li><span style="color:#FFD86A;">🗅️ Fecha de nacimiento:</span> {{ resultado.birth_date|default('—') }}</li>
+        <li><span style="color:#FFD86A;">🕰️ Hora de nacimiento:</span> {{ resultado.birth_time|default('—') }}</li>
+        <li><span style="color:#FFD86A;">🌍 Ciudad:</span> {{ resultado.birth_city|default('—') }}</li>
+        <li><span style="color:#FFD86A;">🌎 País:</span> {{ resultado.birth_country|default('—') }}</li>
      </ul>
   </section>
 
   <!-- ---------- COSMIC INSIGHTS ---------- -->
   <section style="background:#111C2C; border-radius:10px; padding:1.4rem 1.6rem; margin-bottom:1.8rem;">
-     <h2 style="color:#FFD86A; font-size:1.35rem; margin-top:0;">🔭 Cosmic Insights</h2>
+     <h2 style="color:#FFD86A; font-size:1.35rem; margin-top:0;">🔭 Perspectivas cósmicas</h2>
 
      {% set texto_bruto = resultado.texto|default('') %}
      {% if texto_bruto %}
@@ -58,25 +58,25 @@
            </div>
         {% endfor %}
      {% else %}
-        <p style="color:#EAEAEA;">— Insights not available —</p>
+        <p style="color:#EAEAEA;">— Perspectivas no disponibles —</p>
      {% endif %}
   </section>
 
   <!-- ---------- SIGNATURES / NUMBERS ---------- -->
   <section style="background:#111C2C; border-radius:10px; padding:1.4rem 1.6rem;">
-     <h2 style="color:#FFD86A; font-size:1.35rem; margin-top:0;">🔑 Celestial Signatures</h2>
+     <h2 style="color:#FFD86A; font-size:1.35rem; margin-top:0;">🔑 Firmas celestiales</h2>
      <ul style="list-style:none; padding:0; margin-top:.8rem; font-size:1rem; line-height:1.55rem; color:#EAEAEA;">
-        <li><span style="color:#FFD86A;">☀ Sun Sign:</span> {{ resultado.sun_sign|default('—') }}</li>
-        <li><span style="color:#FFD86A;">🌙 Moon Sign:</span> {{ resultado.moon_sign|default('—') }}</li>
-        <li><span style="color:#FFD86A;">⬆ Ascendant:</span> {{ resultado.ascendant|default('—') }}</li>
-        <li><span style="color:#FFD86A;">🔢 Life Path:</span> {{ resultado.life_path|default('—') }}</li>
-        <li><span style="color:#FFD86A;">💓 Soul Urge:</span> {{ resultado.soul_urge|default('—') }}</li>
-        <li><span style="color:#FFD86A;">✨ Expression:</span> {{ resultado.expression|default('—') }}</li>
+        <li><span style="color:#FFD86A;">☀ Signo solar:</span> {{ resultado.sun_sign|default('—') }}</li>
+        <li><span style="color:#FFD86A;">🌙 Signo lunar:</span> {{ resultado.moon_sign|default('—') }}</li>
+        <li><span style="color:#FFD86A;">⬆ Ascendente:</span> {{ resultado.ascendant|default('—') }}</li>
+        <li><span style="color:#FFD86A;">🔢 Número de Camino de Vida:</span> {{ resultado.life_path|default('—') }}</li>
+        <li><span style="color:#FFD86A;">💓 Número de Anhelo del Alma:</span> {{ resultado.soul_urge|default('—') }}</li>
+        <li><span style="color:#FFD86A;">✨ Número de Expresión:</span> {{ resultado.expression|default('—') }}</li>
      </ul>
   </section>
 
   <p style="text-align:center; color:#6A768C; font-size:.85rem; margin-top:2rem;">
-      Generated by SkyAI • © {{ current_year|default(2025) }}
+      Generado por SkyAI • © {{ current_year|default(2025) }}
   </p>
 
 </div>

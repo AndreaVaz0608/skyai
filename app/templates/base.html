@@ -1,5 +1,5 @@
 <!DOCTYPE html>
-<html lang="en">
+<html lang="es">
 <head>
   <meta charset="UTF-8">
   <title>{% block title %}SkyAI{% endblock %}</title>
@@ -231,8 +231,8 @@
     }
 
     .guru-alert {
-      position: absolute;      /* 🔑 Dentro do container relativo */
-      top: -20px;              /* Sobe um pouco para sobrepor a borda do card */
+      position: absolute;
+      top: -20px;
       left: 50%;
       transform: translateX(-50%);
       background-color: #0E2841;
@@ -242,10 +242,10 @@
       border: 1px solid #ffeeba;
       border-radius: 8px;
       text-align: center;
-      width: calc(100% - 40px);  /* Para respeitar as bordas do container */
+      width: calc(100% - 40px);
       box-sizing: border-box;
       box-shadow: 0 4px 10px rgba(0,0,0,0.1);
-      z-index: 10;              /* Sobrepõe o conteúdo interno */
+      z-index: 10;
     }
   </style>
   
@@ -263,7 +263,7 @@
 
   {% block content %}{% endblock %}
 
-  <a href="{{ url_for('contato.contato') }}" class="contact-floating" title="Contact us">
+  <a href="{{ url_for('contato.contato') }}" class="contact-floating" title="Contáctanos">
     💬
   </a>
 

@@ -1,5 +1,5 @@
 {% extends "base.html" %}
-{% block title %}Compatibility Reading • SkyAI{% endblock %}
+{% block title %}Lectura de compatibilidad • SkyAI{% endblock %}
 
 {% block content %}
 <style>
@@ -27,86 +27,86 @@
 
 <div class="box-container" style="max-width: 640px; margin: 0 auto; padding: 2rem;">
   <div style="text-align: center; margin-bottom: 2.5rem;">
-    <img src="{{ url_for('static', filename='img/logo_skyai.png') }}" alt="SkyAI Logo" style="max-height: 60px;">
-    <h2 style="margin-top: 1rem; color: #ffdd77;">💘 Cosmic Compatibility</h2>
-    <p style="color: #ccc;">Enter the birth and identity details for both people to receive a complete compatibility reading.</p>
+    <img src="{{ url_for('static', filename='img/logo_skyai.png') }}" alt="Logo de SkyAI" style="max-height: 60px;">
+    <h2 style="margin-top: 1rem; color: #ffdd77;">💘 Compatibilidad cósmica</h2>
+    <p style="color: #ccc;">Ingresa los datos de nacimiento e identidad de ambas personas para recibir una lectura de compatibilidad completa.</p>
   </div>
 
   <!-- 🔗 O formulário envia direto para /compatibility (POST) -->
   <form method="POST" action="{{ url_for('user.compatibility') }}">
     <!-- Person 1 -->
     <fieldset style="margin-bottom: 2.5rem;">
-      <legend style="color: #ffdd77; margin-bottom: 1rem;">✨ Person&nbsp;1</legend>
+      <legend style="color: #ffdd77; margin-bottom: 1rem;">✨ Persona&nbsp;1</legend>
 
       <div class="form-group" style="margin-bottom: 1rem;">
-        <label for="name_1" style="color: #fff;">Full Name</label>
-        <input type="text" name="name_1" id="name_1" required placeholder="e.g. John Smith">
+        <label for="name_1" style="color: #fff;">Nombre completo</label>
+        <input type="text" name="name_1" id="name_1" required placeholder="p. ej., John Smith">
       </div>
 
       <div class="form-group" style="margin-bottom: 1rem;">
-        <label for="birth_1" style="color: #fff;">Date of Birth</label>
+        <label for="birth_1" style="color: #fff;">Fecha de nacimiento</label>
         <input type="date" name="birth_1" id="birth_1" required>
       </div>
 
       <div class="form-group" style="margin-bottom: 1rem;">
-        <label for="birth_time_1" style="color: #fff;">Time of Birth</label>
+        <label for="birth_time_1" style="color: #fff;">Hora de nacimiento</label>
         <input type="time" name="birth_time_1" id="birth_time_1" required>
       </div>
 
       <div class="form-group" style="margin-bottom: 1rem;">
-        <label for="birth_city_1" style="color: #fff;">City of Birth</label>
-        <input type="text" name="birth_city_1" id="birth_city_1" required placeholder="e.g. São Paulo">
+        <label for="birth_city_1" style="color: #fff;">Ciudad de nacimiento</label>
+        <input type="text" name="birth_city_1" id="birth_city_1" required placeholder="p. ej., São Paulo">
       </div>
 
       <div class="form-group">
-        <label for="birth_country_1" style="color: #fff;">Country of Birth</label>
-        <input type="text" name="birth_country_1" id="birth_country_1" required placeholder="e.g. Brazil">
+        <label for="birth_country_1" style="color: #fff;">País de nacimiento</label>
+        <input type="text" name="birth_country_1" id="birth_country_1" required placeholder="p. ej., Brasil">
       </div>
     </fieldset>
 
     <!-- Person 2 -->
     <fieldset style="margin-bottom: 2.5rem;">
-      <legend style="color: #ffdd77; margin-bottom: 1rem;">✨ Person&nbsp;2</legend>
+      <legend style="color: #ffdd77; margin-bottom: 1rem;">✨ Persona&nbsp;2</legend>
 
       <div class="form-group" style="margin-bottom: 1rem;">
-        <label for="name_2" style="color: #fff;">Full Name</label>
-        <input type="text" name="name_2" id="name_2" required placeholder="e.g. Jane Doe">
+        <label for="name_2" style="color: #fff;">Nombre completo</label>
+        <input type="text" name="name_2" id="name_2" required placeholder="p. ej., Jane Doe">
       </div>
 
       <div class="form-group" style="margin-bottom: 1rem;">
-        <label for="birth_2" style="color: #fff;">Date of Birth</label>
+        <label for="birth_2" style="color: #fff;">Fecha de nacimiento</label>
         <input type="date" name="birth_2" id="birth_2" required>
       </div>
 
       <div class="form-group" style="margin-bottom: 1rem;">
-        <label for="birth_time_2" style="color: #fff;">Time of Birth</label>
+        <label for="birth_time_2" style="color: #fff;">Hora de nacimiento</label>
         <input type="time" name="birth_time_2" id="birth_time_2" required>
       </div>
 
       <div class="form-group" style="margin-bottom: 1rem;">
-        <label for="birth_city_2" style="color: #fff;">City of Birth</label>
-        <input type="text" name="birth_city_2" id="birth_city_2" required placeholder="e.g. Lisbon">
+        <label for="birth_city_2" style="color: #fff;">Ciudad de nacimiento</label>
+        <input type="text" name="birth_city_2" id="birth_city_2" required placeholder="p. ej., Lisboa">
       </div>
 
       <div class="form-group">
-        <label for="birth_country_2" style="color: #fff;">Country of Birth</label>
-        <input type="text" name="birth_country_2" id="birth_country_2" required placeholder="e.g. Portugal">
+        <label for="birth_country_2" style="color: #fff;">País de nacimiento</label>
+        <input type="text" name="birth_country_2" id="birth_country_2" required placeholder="p. ej., Portugal">
       </div>
     </fieldset>
 
     <button type="submit" class="btn-primary" style="width: 100%; padding: 1rem; border-radius: 12px; font-size: 1.1rem;">
-      🔮 Generate Compatibility Report
+      🔮 Generar informe de compatibilidad
     </button>
 
     <p style="color:#aaa;font-size:.85rem;margin-top:.75rem;text-align:center;">
-      Results are delivered instantly after you submit the data.
+      Los resultados se entregan al instante después de enviar los datos.
     </p>
   </form>
 
   <div style="text-align: center; margin-top: 2rem;">
     <a href="{{ url_for('auth_views.dashboard') }}" class="btn-primary"
        style="background-color: transparent; border: 2px solid #ffdd77; color: #ffdd77; padding: 0.75rem 1.5rem; border-radius: 10px;">
-      ← Back to Dashboard
+      ← Volver al Panel
     </a>
   </div>
 </div>
