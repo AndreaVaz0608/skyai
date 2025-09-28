@@ -3,9 +3,10 @@
 Geração de relatório Sky.AI com astrologia e numerologia.
 Inclui logging do prompt e controle de erros.
 """
+
 import os
 import json
-import re                # ← novo
+import re
 from datetime import datetime
 import io
 import traceback
@@ -15,6 +16,7 @@ from openai import OpenAI
 
 from app.services.astrology_service import get_astrological_data
 from app.services.numerology_service import get_numerology
+
 
 def generate_skyai_prompt(user_data: dict) -> str:
     full_name      = user_data.get("full_name", "User")
@@ -94,58 +96,56 @@ def generate_skyai_prompt(user_data: dict) -> str:
 
     # ── 6. Prompt final para a IA ───────────────────────────────────────────
     preamble = (
-        "Use these precomputed values for all interpretations:\n"
-        f"- Solar Sign: {sun_sign}\n"
-        f"- Lunar Sign: {moon_sign}\n"
-        f"- Ascendant: {asc_sign}\n"
-        f"- Aspect Sun–Moon: {aspect_sun_moon}\n"
-        f"- Aspect Moon–Ascendant: {aspect_moon_asc}\n"
-        f"- Life Path Number: {nume['life_path']}\n"
-        f"- Soul Urge Number: {nume['soul_urge']}\n"
-        f"- Expression Number: {nume['expression']}\n"
-        f"- Natal Chart Aspects:\n{aspectos_detalhados}\n"
+        "Usa estos valores precomputados para todas las interpretaciones:\n"
+        f"- Signo Solar: {sun_sign}\n"
+        f"- Signo Lunar: {moon_sign}\n"
+        f"- Ascendente: {asc_sign}\n"
+        f"- Aspecto Sol–Luna: {aspect_sun_moon}\n"
+        f"- Aspecto Luna–Ascendente: {aspect_moon_asc}\n"
+        f"- Número de Camino de Vida: {nume['life_path']}\n"
+        f"- Número de Anhelo del Alma: {nume['soul_urge']}\n"
+        f"- Número de Expresión: {nume['expression']}\n"
+        f"- Aspectos de la carta natal:\n{aspectos_detalhados}\n"
     )
 
     body = f"""
-You are SkyAI — an elite professional astrologer + numerologist writing in clear, engaging English.
+Eres SkyAI — un/a astrólogo(a) y numerólogo(a) de élite que escribe en **español claro y motivador**.
 
-Generate a deeply PERSONAL, actionable report for {full_name},
-born on {display_date} at {birth_time} in {birth_city}, {birth_country}.
-Base every insight ONLY on the pre-computed values above.
+Genera un informe profundamente PERSONAL y accionable para {full_name},
+nacido(a) el {display_date} a las {birth_time} en {birth_city}, {birth_country}.
+Basar **todas** las interpretaciones **solo** en los valores precomputados de arriba.
 
-• Forecasts must include dates ONLY from the present onward (today = {current_date_text}).  
-• DO NOT include any references to past years.  
-• Dates should be monthly or quarterly, e.g., “October 2025”, “Q4 2025”, or “early 2026”.  
-• All time references must be helpful and relevant to real decision-making.
+• Las proyecciones deben incluir fechas **desde hoy en adelante** (hoy = {current_date_text}).  
+• **No** incluyas referencias a años pasados.  
+• Usa referencias mensuales o trimestrales: “octubre de 2025”, “T4 2025”, “inicios de 2026”.  
+• Todo marco temporal debe ayudar a tomar decisiones reales.
 
-💡 STYLE
-• Motivating, jargon-free language.  
-• 2–4 short paragraphs per section, blank line between paragraphs.  
-• Quote aspect degrees/orbs in parentheses, e.g. “Sun ♓ 25° opposite Moon ♍ 28° (orb 2°)”.  
-• Forecasts must include approximate dates (“Feb–Mar 2026”).  
-• End each section with one imperative takeaway (“Start a 5-minute grounding routine…”).
+💡 ESTILO  
+• Lenguaje motivador, sin jerga complicada.  
+• 2–4 párrafos cortos por sección, con una línea en blanco entre párrafos.  
+• Cita grados/orbes entre paréntesis, p. ej.: “Sol ♓ 25° opuesto a Luna ♍ 28° (orbe 2°)”.  
+• En las proyecciones, incluye rangos aproximados (“feb–mar 2026”).  
+• Cierra **cada** sección con una frase imperativa y práctica (“Empieza…”, “Evita…”, “Registra…”).
 
-📑 REQUIRED SECTIONS (use these titles **exactly**, each starting with `##`):
-1. ## 🌞 Sun, 🌙 Moon & ⬆️ Ascendant  
-2. ## 🩹 Core Astrological Themes  
-3. ## 🔢 Key Numerology  
-4. ## 💖 Relationships & Emotions  
-5. ## 🎯 Career & Purpose  
-6. ## 🔮 12-Month Outlook  
-7. ## ✨ Exclusive 30-Day Action Plan — Your Personalized Cosmic Prescription
+📑 SECCIONES OBLIGATORIAS (usa **exactamente** estos títulos, cada uno empezando con `##`):
+1. ## 🌞 Sol, 🌙 Luna y ⬆️ Ascendente  
+2. ## 🩹 Temas Astrológicos Clave  
+3. ## 🔢 Numerología Clave  
+4. ## 💖 Relaciones y Emociones  
+5. ## 🎯 Carrera y Propósito  
+6. ## 🔮 Perspectiva a 12 Meses  
+7. ## ✨ Plan de Acción de 30 Días — Tu Prescripción Cósmica Personal
 
-This is the most valuable section.  
-Provide a clear, motivating 30-day roadmap with 2–4 simple, powerful actions.  
-Use short sentences. Be specific and practical.  
-Start each suggestion on a new line, and use imperative tone (e.g., “Start your day with...”, “Avoid...”, “Track...”)
+Esta última sección es la más valiosa.  
+Entrega un plan de 30 días con 2–4 acciones simples y poderosas.  
+Frases breves, específicas y prácticas.  
+Cada sugerencia en una línea nueva, tono imperativo.
 
-Close this section with one inspiring line that reminds the user of their power.
+Cierra con una línea inspiradora que recuerde al usuario su propio poder.
 
-This must be the most actionable and easy-to-remember part of the report.
-
-➡️ OUTPUT FORMAT  
-Return **only** a pure JSON object — no Markdown fences, no extra text.  
-Inside the "texto" field, ESCAPE every line break as `\\n`. Example:
+➡️ FORMATO DE SALIDA  
+Devuelve **solo** un objeto JSON puro — sin bloques Markdown ni texto adicional.  
+Dentro del campo "texto", ESCAPA cada salto de línea como `\\n`. Ejemplo:
 
 {{
   "sun_sign": "Pisces",
@@ -154,17 +154,18 @@ Inside the "texto" field, ESCAPE every line break as `\\n`. Example:
   "life_path": "{nume['life_path']}",
   "soul_urge": "{nume['soul_urge']}",
   "expression": "{nume['expression']}",
-  "texto": "## 🌞 Sun, 🌙 Moon & ⬆️ Ascendant\\n\
-Your Pisces Sun...\\n\\n\
-## 🩹 Core Astrological Themes\\n\
+  "texto": "## 🌞 Sol, 🌙 Luna y ⬆️ Ascendente\\n\
+Tu Sol en Piscis...\\n\\n\
+## 🩹 Temas Astrológicos Clave\\n\
 ..."
 }}
 
-❌ Do NOT add greetings, sign-offs, or process notes.
-✅ Deliver only the JSON object above.
+❌ No añadas saludos, despedidas ni notas de proceso.  
+✅ Entrega únicamente el JSON anterior.
 """
 
     return f"{preamble}\n{body}"
+
 
 def generate_report_via_ai(user_data: dict) -> dict:
     try:
@@ -182,11 +183,21 @@ def generate_report_via_ai(user_data: dict) -> dict:
         if not api_key:
             raise RuntimeError("OPENAI_API_KEY not set.")
 
+        # Idioma configurável (default: es)
+        LANG = os.getenv("REPORT_LANG", "es").lower()
+        system_msg = (
+            "Eres SkyAI, astrólogo(a) y numerólogo(a) profesional. "
+            "RESPONDE SIEMPRE en español latino neutro, con tono claro, cálido y accionable. "
+            "Si el usuario escribe en otro idioma, traduce y responde en español."
+            if LANG.startswith("es")
+            else "You are SkyAI, astrologer and numerologist. Always answer in the requested language."
+        )
+
         client = OpenAI(api_key=api_key)
         response = client.chat.completions.create(
             model="gpt-4",
             messages=[
-                {"role": "system", "content": "You are SkyAI, expert in astrology and numerology."},
+                {"role": "system", "content": system_msg},
                 {"role": "user", "content": prompt},
             ],
             temperature=0.85,
@@ -202,7 +213,7 @@ def generate_report_via_ai(user_data: dict) -> dict:
             f.write("--- End RAW ---\n")
 
         # ── Limpeza: remove cercas ``` e isola o JSON puro ───────────────────
-        clean_output = re.sub(r"```(?:\\w+)?\s*|```", "", raw_output).strip()
+        clean_output = re.sub(r"```(?:\w+)?\s*|```", "", raw_output).strip()
 
         if '"texto"' in clean_output:
             def _escape_block(match):
@@ -223,7 +234,7 @@ def generate_report_via_ai(user_data: dict) -> dict:
             start = clean_output.find("{")
             end = clean_output.rfind("}")
             if start != -1 and end != -1 and end > start:
-                clean_output = clean_output[start : end + 1]
+                clean_output = clean_output[start: end + 1]
 
         result_text = clean_output
 
@@ -243,22 +254,20 @@ def generate_report_via_ai(user_data: dict) -> dict:
                 "expression": None,
             }
 
-        # ── Correção para remover duplicação do plano 30 dias ────────────────
-        texto = parsed.get("texto", "")
-        if texto.count("30-Day Action Plan") > 1:
+        # ── Correção para duplicação do plano 30 dias (EN/ES) ───────────────
+        texto = parsed.get("texto", "") or ""
+        if texto.count("30-Day Action Plan") > 1 or texto.count("Plan de Acción de 30 Días") > 1:
             partes = texto.split("## ")
-            plano_visto = False
-            partes_filtradas = []
-
+            visto = False
+            filtradas = []
             for parte in partes:
-                if "30-Day Action Plan" in parte:
-                    if not plano_visto:
-                        partes_filtradas.append(parte)
-                        plano_visto = True
+                if "30-Day Action Plan" in parte or "Plan de Acción de 30 Días" in parte:
+                    if not visto:
+                        filtradas.append(parte)
+                        visto = True
                 else:
-                    partes_filtradas.append(parte)
-
-            texto = "## ".join(partes_filtradas)
+                    filtradas.append(parte)
+            texto = "## ".join(filtradas)
 
         return {
             "erro": None,
@@ -273,10 +282,9 @@ def generate_report_via_ai(user_data: dict) -> dict:
 
     except Exception as e:
         current_app.logger.error(f"[AI ERROR] {e}")
-        
         return {
             "erro": str(e),
-            "texto": "Sorry, couldn’t generate report at this time.",
+            "texto": "Lo sentimos, no pudimos generar el informe en este momento.",
             "sun_sign": None,
             "moon_sign": None,
             "ascendant": None,
@@ -284,4 +292,3 @@ def generate_report_via_ai(user_data: dict) -> dict:
             "soul_urge": None,
             "expression": None,
         }
-    
