@@ -2,6 +2,7 @@
 {% block title %}Procesando... • SkyAI{% endblock %}
 
 {% block content %}
+
 <style>
   .video-container {
     width: 100%;
@@ -14,7 +15,12 @@
     overflow: hidden;
     flex-direction: column;
   }
-  video { max-width: 100%; max-height: 100%; object-fit: contain; }
+
+  video {
+    max-width: 100%;
+    max-height: 100%;
+    object-fit: contain;
+  }
 
   .message {
     width: 100%;
@@ -23,25 +29,24 @@
     font-size: 1.2rem;
     font-weight: 500;
     font-family: 'Poppins', sans-serif;
-    padding: 0.75rem 1rem;
+    padding: 1rem 2rem;
     z-index: 2;
   }
-  .paid-message { color: #4CAF50; margin-bottom: 0.25rem; font-weight: 700; }
 
-  /* --- Barra de progreso indeterminada (leve) --- */
-  .sky-progress { width: 92%; max-width: 720px; height: 8px; background: #141a33;
-    border-radius: 6px; overflow: hidden; box-shadow: inset 0 0 0 1px rgba(255,255,255,0.06); margin: 8px auto 2px; }
-  .sky-progress > .bar { width: 40%; height: 100%;
-    background: linear-gradient(90deg,#FFD37A,#FFE8B2);
-    animation: slide 1.15s infinite ease-in-out; border-radius: 6px; }
-  @keyframes slide { 0%{margin-left:-40%} 50%{margin-left:60%} 100%{margin-left:-40%} }
+  .paid-message {
+    color: #4CAF50;
+    margin-bottom: 0.5rem;
+    font-weight: bold;
+    font-size: 1.1rem;
+  }
 
-  .stage { color:#EDEDF6; font-weight:600; margin-top: 10px; text-align:center; }
-  .detail { color:#B9BBD3; font-size:12px; text-align:center; margin-top: 2px; }
-
-  .hidden-iframe { position:absolute; left:-9999px; width:1px; height:1px; }
   @media (max-width: 600px) {
-    .message { font-size: 1rem; }
+    .message {
+      font-size: 1rem;
+    }
+    .paid-message {
+      font-size: 1rem;
+    }
   }
 </style>
 
@@ -50,12 +55,7 @@
     <div class="paid-message">✅ ¡Pago confirmado! Tu informe se está generando.</div>
   {% endif %}
 
-  <div class="message" id="skyMsg">Alineando estrellas, decodificando números... ¡Tu mapa cósmico casi está listo!</div>
-
-  <!-- Barra de progreso + estados -->
-  <div class="sky-progress"><div class="bar"></div></div>
-  <div class="stage" id="skyStage">Iniciando…</div>
-  <div class="detail" id="skyDetail">Preparando tu informe 2026…</div>
+  <div class="message">Alineando estrellas, decodificando números... ¡Tu mapa cósmico casi está listo!</div>
 
   <video autoplay muted loop playsinline>
     <source src="{{ url_for('static', filename='videos/skyai_loading.mp4') }}" type="video/mp4">
@@ -63,37 +63,10 @@
   </video>
 </div>
 
-<!-- iFrame oculto: dispara la generación/descarga del PDF sin salir de esta página -->
-<iframe id="dlFrame" class="hidden-iframe"></iframe>
-
 <script>
-  // Etapas OTIMISTAS (front-only). Ajuste los tiempos a su promedio real si necesario.
-  const stages = [
-    { t:   0,  s: 'Validando datos',           d: 'Comprobando fecha, hora y ciudad…' },
-    { t:1200, s: 'Consultando efemérides',     d: 'Planetas, casas y aspectos…' },
-    { t:2800, s: 'Numerología 2026',           d: 'Descifrando tu frecuencia personal…' },
-    { t:4200, s: 'Componiendo tu informe',     d: 'Integrando previsiones para 2026…' },
-    { t:5600, s: 'Generando PDF',              d: 'Aplicando tema SkyAI…' }
-  ];
-
-  function playStages() {
-    const stage = document.getElementById('skyStage');
-    const detail = document.getElementById('skyDetail');
-    stages.forEach(step => {
-      setTimeout(() => { stage.textContent = step.s; detail.textContent = step.d; }, step.t);
-    });
-    // Mensaje de finalización optimista
-    setTimeout(() => {
-      stage.textContent = '¡Listo!';
-      detail.textContent = 'Tu PDF debería comenzar a descargarse. Si no, inténtalo de nuevo.';
-    }, 8000);
-  }
-
-  // Al cargar esta página: inicia las etapas y dispara la generación en el iframe
-  document.addEventListener('DOMContentLoaded', function() {
-    playStages();
-    const url = "{{ url_for('user.gerar_relatorio', sessao_id=sessao_id) }}";
-    document.getElementById('dlFrame').src = url; // mantiene esta página mientras el servidor genera y entrega el PDF
-  });
+  setTimeout(function() {
+    window.location.href = "{{ url_for('user.gerar_relatorio', sessao_id=sessao_id) }}";
+  }, 8000); // Redirigir después de 8 segundos
 </script>
+
 {% endblock %}
