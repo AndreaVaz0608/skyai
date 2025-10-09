@@ -41,12 +41,8 @@
   }
 
   @media (max-width: 600px) {
-    .message {
-      font-size: 1rem;
-    }
-    .paid-message {
-      font-size: 1rem;
-    }
+    .message { font-size: 1rem; }
+    .paid-message { font-size: 1rem; }
   }
 </style>
 
@@ -55,7 +51,10 @@
     <div class="paid-message">✅ ¡Pago confirmado! Tu informe se está generando.</div>
   {% endif %}
 
-  <div class="message">Alineando estrellas, decodificando números... ¡Tu mapa cósmico casi está listo!</div>
+  <!-- Mensaje dinámico (sin barra) -->
+  <div class="message" id="skyai-msg">
+    🔮 Estamos conectando con tu energía cósmica...
+  </div>
 
   <video autoplay muted loop playsinline>
     <source src="{{ url_for('static', filename='videos/skyai_loading.mp4') }}" type="video/mp4">
@@ -64,6 +63,22 @@
 </div>
 
 <script>
+  // Rotación de frases (sólo UI; no toca backend)
+  const mensajes = [
+    "🔮 Estamos conectando con tu energía cósmica...",
+    "✨ Decodificando tus estrellas y números personales...",
+    "🌕 Tu informe está casi listo. En instantes estará disponible."
+  ];
+  (function rotarMensajes() {
+    const el = document.getElementById('skyai-msg');
+    let i = 0;
+    setInterval(() => {
+      i = (i + 1) % mensajes.length;
+      el.textContent = mensajes[i];
+    }, 2600); // cambia cada 2.6s
+  })();
+
+  // Mantengo tu redirección tal como está (no altero flujo)
   setTimeout(function() {
     window.location.href = "{{ url_for('user.gerar_relatorio', sessao_id=sessao_id) }}";
   }, 8000); // Redirigir después de 8 segundos
